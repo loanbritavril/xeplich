@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Xếp Lịch – Tự động xếp ca làm việc</title>
+<style>
+:root{--bg:#f5f6fa;--card:#fff;--tx:#1f2430;--mut:#667085;--pri:#2563eb;--ok:#16a34a;--bad:#dc2626;--bd:#e4e7ec}
+@media (prefers-color-scheme:dark){:root{--bg:#12141a;--card:#1b1e27;--tx:#e8eaf0;--mut:#9aa3b2;--pri:#5b8cff;--bd:#2c3140}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx)}
+header{padding:18px 20px;border-bottom:1px solid var(--bd);background:var(--card)}
+header h1{margin:0;font-size:20px}header p{margin:2px 0 0;color:var(--mut);font-size:13px}
+main{max-width:1200px;margin:0 auto;padding:16px;display:grid;gap:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px}
+.card h2{margin:0 0 10px;font-size:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.grid2{grid-template-columns:1fr}}
+.drop{border:2px dashed var(--bd);border-radius:10px;padding:14px;text-align:center;color:var(--mut)}
+.drop input{margin-top:8px;max-width:100%}
+.hint{font-size:12.5px;color:var(--mut);margin:6px 0 0}
+button{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--tx);cursor:pointer}
+button.pri{background:var(--pri);color:#fff;border-color:var(--pri);font-weight:600}
+button:hover{filter:brightness(.96)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+label.opt{display:flex;gap:6px;align-items:center;font-size:14px}
+input[type=number]{width:64px;padding:5px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border:1px solid var(--bd);padding:6px 8px;vertical-align:top;text-align:left}
+th{background:var(--bg);font-weight:600}
+.sched td{min-width:110px}
+.tag{display:inline-block;background:color-mix(in srgb,var(--pri) 14%,transparent);color:var(--pri);border-radius:6px;padding:1px 7px;margin:1px 2px 1px 0;font-size:13px}
+td.short{background:color-mix(in srgb,var(--bad) 12%,transparent)}
+.miss{color:var(--bad);font-size:12px;font-weight:600}
+.warn{background:color-mix(in srgb,var(--bad) 10%,transparent);border:1px solid var(--bad);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:13.5px}
+.good{background:color-mix(in srgb,var(--ok) 10%,transparent);border:1px solid var(--ok);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:13.5px}
+.scroll{overflow-x:auto}
+.muted{color:var(--mut)}
+.status{font-size:13px;margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>📅 Xếp Lịch – tự động xếp ca làm việc</h1>
+  <p>Nhập file Excel/CSV nhân viên + nhu cầu ca → app tự xếp lịch tuần, tôn trọng ngày nghỉ, giới hạn ca và công bằng giữa mọi người.</p>
+</header>
+<main>
+  <section class="card">
+    <h2>1. Dữ liệu đầu vào</h2>
+    <div class="grid2">
+      <div>
+        <div class="drop"><b>Nhân viên</b> (.csv / .xlsx)<br><input type="file" id="fEmp" accept=".csv,.xlsx,.xls,.txt"></div>
+        <p class="hint">Cột: <code>Tên</code>, <code>Số ca tối đa/tuần</code>, <code>Số ca tối thiểu</code>, <code>Ngày nghỉ</code> (vd: T2;CN), <code>Ca không làm được</code> (vd: Tối). Chỉ cột <code>Tên</code> là bắt buộc.</p>
+        <div class="status" id="stEmp"></div>
+      </div>
+      <div>
+        <div class="drop"><b>Nhu cầu ca</b> (.csv / .xlsx)<br><input type="file" id="fDem" accept=".csv,.xlsx,.xls,.txt"></div>
+        <p class="hint">Cột: <code>Ngày</code> (T2…CN), <code>Ca</code> (Sáng/Chiều/Tối…), <code>Số người</code>. Thứ tự ca xuất hiện đầu tiên = thứ tự trong ngày.</p>
+        <div class="status" id="stDem"></div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="btnSample">Dùng dữ liệu mẫu</button>
+      <button id="dlEmp">Tải file mẫu nhân viên</button>
+      <button id="dlDem">Tải file mẫu nhu cầu ca</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2. Quy tắc</h2>
+    <div class="row">
+      <label class="opt">Tối đa <input type="number" id="oPerDay" value="1" min="1" max="4"> ca / ngày / người</label>
+      <label class="opt">Tối đa <input type="number" id="oConsec" value="6" min="1" max="7"> ngày làm liên tiếp</label>
+      <label class="opt"><input type="checkbox" id="oRest" checked> Không xếp ca cuối ngày rồi ca đầu ngày hôm sau</label>
+      <label class="opt">Số lần thử <input type="number" id="oIter" value="400" min="20" max="5000" style="width:80px"></label>
+    </div>
+    <div class="row" style="margin-top:12px"><button class="pri" id="btnRun">⚡ Xếp lịch tự động</button></div>
+  </section>
+
+  <section class="card" id="result" style="display:none">
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">3. Kết quả</h2>
+      <div class="row"><button id="exCsv">Xuất CSV</button><button id="exXlsx">Xuất Excel</button><button id="exPrint">In</button></div>
+    </div>
+    <div id="summary"></div>
+    <div class="scroll" id="grid"></div>
+    <h2 style="margin-top:18px">Thống kê theo nhân viên</h2>
+    <div class="scroll" id="stats"></div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="window.XLSX=null"></script>
+<script>
+"use strict";
+const DAYS=["T2","T3","T4","T5","T6","T7","CN"];
+const state={emps:null,dem:null,result:null};
+
+/* ---------- helpers ---------- */
+const strip=s=>String(s??"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/đ/g,"d").replace(/Đ/g,"D").toLowerCase().trim();
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function parseDay(v){
+  const s=strip(v).replace(/\./g,"");
+  const m={"t2":0,"thu 2":0,"thu hai":0,"2":0,"mon":0,"monday":0,
+    "t3":1,"thu 3":1,"thu ba":1,"3":1,"tue":1,"tuesday":1,
+    "t4":2,"thu 4":2,"thu tu":2,"4":2,"wed":2,"wednesday":2,
+    "t5":3,"thu 5":3,"thu nam":3,"5":3,"thu":3,"thursday":3,
+    "t6":4,"thu 6":4,"thu sau":4,"6":4,"fri":4,"friday":4,
+    "t7":5,"thu 7":5,"thu bay":5,"7":5,"sat":5,"saturday":5,
+    "cn":6,"chu nhat":6,"8":6,"sun":6,"sunday":6};
+  return s in m?m[s]:-1;
+}
+function parseDayList(v){return String(v??"").split(/[;,\/|]+/).map(parseDay).filter(x=>x>=0)}
+function parseCSV(text){
+  text=text.replace(/^﻿/,"");
+  const first=text.split(/\r?\n/)[0]||"";
+  const delim=(first.match(/;/g)||[]).length>(first.match(/,/g)||[]).length?";":(first.includes("\t")?"\t":",");
+  const rows=[];let row=[],cur="",q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c=='"'){ if(text[i+1]=='"'){cur+='"';i++} else q=false } else cur+=c }
+    else if(c=='"') q=true;
+    else if(c===delim){row.push(cur);cur=""}
+    else if(c=="\n"||c=="\r"){ if(c=="\r"&&text[i+1]=="\n")i++; row.push(cur);cur="";rows.push(row);row=[] }
+    else cur+=c;
+  }
+  if(cur!==""||row.length){row.push(cur);rows.push(row)}
+  return rows.filter(r=>r.some(x=>String(x).trim()!==""));
+}
+async function readFile(file){
+  const n=file.name.toLowerCase();
+  if(/\.xlsx?$/.test(n)){
+    if(!window.XLSX) throw new Error("Không tải được thư viện Excel (cần Internet). Hãy lưu file thành .csv.");
+    const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});
+    return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:""});
+  }
+  return parseCSV(await file.text());
+}
+function colIndex(head,preds){
+  const h=head.map(strip);
+  for(const p of preds){const i=h.findIndex(p);if(i>=0)return i}
+  return -1;
+}
+
+/* ---------- parse data ---------- */
+function parseEmployees(rows){
+  if(rows.length<2) throw new Error("File nhân viên không có dữ liệu.");
+  const head=rows[0];
+  const cName=colIndex(head,[h=>h==="ten",h=>h.includes("ten"),h=>h.includes("name"),h=>h.includes("nhan vien")]);
+  if(cName<0) throw new Error("Không tìm thấy cột 'Tên'.");
+  const cMax=colIndex(head,[h=>h.includes("toi da"),h=>h.includes("max")]);
+  const cMin=colIndex(head,[h=>h.includes("toi thieu"),h=>h.includes("min")]);
+  const cOffShift=colIndex(head,[h=>h.includes("ca khong"),h=>h.includes("ca ban"),h=>h.includes("khong lam")]);
+  const cOffDay=colIndex(head,[h=>h.includes("ngay nghi"),h=>h.includes("ngay ban"),h=>h.includes("nghi"),h=>h.includes("off")]);
+  const emps=[];
+  for(const r of rows.slice(1)){
+    const name=String(r[cName]??"").trim(); if(!name) continue;
+    const max=cMax>=0&&String(r[cMax]).trim()!==""?parseInt(r[cMax]):99;
+    const min=cMin>=0&&String(r[cMin]).trim()!==""?parseInt(r[cMin]):0;
+    emps.push({name,max:isNaN(max)?99:max,min:isNaN(min)?0:min,
+      offDays:new Set(cOffDay>=0?parseDayList(r[cOffDay]):[]),
+      offShifts:new Set(cOffShift>=0?String(r[cOffShift]).split(/[;,\/|]+/).map(strip).filter(Boolean):[])});
+  }
+  if(!emps.length) throw new Error("Không có nhân viên hợp lệ.");
+  return emps;
+}
+function parseDemand(rows){
+  if(rows.length<2) throw new Error("File nhu cầu ca không có dữ liệu.");
+  const head=rows[0];
+  const cDay=colIndex(head,[h=>h==="ngay",h=>h.includes("ngay"),h=>h==="thu",h=>h.includes("day")]);
+  const cShift=colIndex(head,[h=>h==="ca",h=>h.includes("ten ca"),h=>h.includes("shift")]);
+  const cNeed=colIndex(head,[h=>h.includes("so nguoi"),h=>h.includes("nguoi"),h=>h.includes("need"),h=>h.includes("so luong"),h=>h.includes("so")]);
+  if(cDay<0||cShift<0||cNeed<0) throw new Error("Cần đủ 3 cột: Ngày, Ca, Số người.");
+  const shifts=[],map={};
+  for(const r of rows.slice(1)){
+    const d=parseDay(r[cDay]); const sh=String(r[cShift]??"").trim(); const n=parseInt(r[cNeed]);
+    if(d<0||!sh||isNaN(n)||n<=0) continue;
+    if(!shifts.includes(sh)) shifts.push(sh);
+    map[d+"|"+sh]=(map[d+"|"+sh]||0)+n;
+  }
+  const slots=Object.entries(map).map(([k,need])=>{const [d,sh]=k.split("|");return{day:+d,shift:sh,si:shifts.indexOf(sh),need}});
+  if(!slots.length) throw new Error("Không đọc được dòng nhu cầu nào (kiểm tra tên ngày: T2…CN).");
+  return{shifts,slots};
+}
+
+/* ---------- scheduler ---------- */
+function solveOnce(emps,dem,opt,rng){
+  const E=emps.length,S=dem.slots.length,last=dem.shifts.length-1;
+  const cnt=new Array(E).fill(0);
+  const dayShifts=emps.map(()=>Array.from({length:7},()=>new Set())); // [e][day]=set of si
+  const assign=dem.slots.map(()=>[]);
+  const remain=dem.slots.map(s=>s.need);
+  const works=(e,d)=>d>=0&&d<7&&dayShifts[e][d].size>0;
+  function ok(e,si){
+    const s=dem.slots[si],em=emps[e];
+    if(cnt[e]>=em.max) return false;
+    if(em.offDays.has(s.day)) return false;
+    if(em.offShifts.has(strip(s.shift))) return false;
+    const ds=dayShifts[e][s.day];
+    if(ds.has(s.si)||ds.size>=opt.perDay) return false;
+    if(opt.rest){
+      if(s.si===0 && dayShifts[e][s.day-1]?.has(last) && last>0) return false;
+      if(s.si===last && last>0 && dayShifts[e][s.day+1]?.has(0)) return false;
+    }
+    if(!ds.size){ // new working day -> check consecutive run
+      let run=1;
+      for(let d=s.day-1;d>=0&&works(e,d);d--)run++;
+      for(let d=s.day+1;d<7&&works(e,d);d++)run++;
+      if(run>opt.consec) return false;
+    }
+    return true;
+  }
+  for(;;){
+    let best=-1,bestC=1e9;
+    for(let i=0;i<S;i++){
+      if(remain[i]<=0) continue;
+      let c=0; for(let e=0;e<E;e++) if(ok(e,i)&&!assign[i].includes(e)) c++;
+      if(c===0){remain[i]=-remain[i]; continue;} // cannot fill any more -> mark (negative)
+      const key=c/remain[i]+rng()*0.3;
+      if(key<bestC){bestC=key;best=i}
+    }
+    if(best<0) break;
+    let pick=-1,pk=1e9;
+    for(let e=0;e<E;e++){
+      if(!ok(e,best)||assign[best].includes(e)) continue;
+      const em=emps[e];
+      const cap=Math.min(em.max,28);
+      let k=cnt[e]/cap*10+rng()*2;
+      if(cnt[e]<em.min) k-=6;
+      // flexible people (many off days) are scarce -> slight preference to keep them free for hard slots
+      k+=(7-em.offDays.size)*0.05*0;
+      if(k<pk){pk=k;pick=e}
+    }
+    assign[best].push(pick);cnt[pick]++;dayShifts[pick][dem.slots[best].day].add(dem.slots[best].si);remain[best]--;
+  }
+  const unfilled=dem.slots.map((s,i)=>Math.max(0,s.need-assign[i].length));
+  const un=unfilled.reduce((a,b)=>a+b,0);
+  const shortMin=emps.reduce((a,e,i)=>a+Math.max(0,e.min-cnt[i]),0);
+  const mean=cnt.reduce((a,b)=>a+b,0)/E;
+  const variance=cnt.reduce((a,c)=>a+(c-mean)**2,0)/E;
+  const cost=un*1000+shortMin*60+variance*10;
+  return{assign,cnt,unfilled,un,shortMin,variance,cost};
+}
+function schedule(emps,dem,opt){
+  let seed=Date.now()%2147483647||1;
+  const rng=()=>(seed=seed*48271%2147483647)/2147483647;
+  let best=null;const t0=performance.now();
+  for(let i=0;i<opt.iter;i++){
+    const r=solveOnce(emps,dem,opt,rng);
+    if(!best||r.cost<best.cost) best=r;
+    if(performance.now()-t0>4000) break;
+  }
+  return best;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const {emps,dem,result:r}=state;
+  document.getElementById("result").style.display="block";
+  const totalNeed=dem.slots.reduce((a,s)=>a+s.need,0);
+  let html="";
+  if(r.un===0) html+=`<div class="good">✅ Đã xếp đủ ${totalNeed}/${totalNeed} vị trí.${r.shortMin?` Còn ${r.shortMin} ca chưa đạt mức tối thiểu của nhân viên.`:""}</div>`;
+  else{
+    html+=`<div class="warn">⚠️ Thiếu ${r.un}/${totalNeed} vị trí. Hãy giảm nhu cầu, tăng số ca tối đa, hoặc thêm nhân viên.</div>`;
+  }
+  document.getElementById("summary").innerHTML=html;
+  const days=[0,1,2,3,4,5,6].filter(d=>dem.slots.some(s=>s.day===d));
+  let t=`<table class="sched"><tr><th>Ca \\ Ngày</th>${days.map(d=>`<th>${DAYS[d]}</th>`).join("")}</tr>`;
+  dem.shifts.forEach((sh,si)=>{
+    t+=`<tr><th>${esc(sh)}</th>`;
+    for(const d of days){
+      const i=dem.slots.findIndex(s=>s.day===d&&s.si===si);
+      if(i<0){t+=`<td class="muted">–</td>`;continue}
+      const names=r.assign[i].map(e=>`<span class="tag">${esc(emps[e].name)}</span>`).join("");
+      const miss=r.unfilled[i];
+      t+=`<td class="${miss?"short":""}">${names}${miss?`<div class="miss">thiếu ${miss}</div>`:""}</td>`;
+    }
+    t+="</tr>";
+  });
+  document.getElementById("grid").innerHTML=t+"</table>";
+  let s=`<table><tr><th>Nhân viên</th><th>Số ca</th><th>Tối thiểu</th><th>Tối đa</th><th>Các ca</th></tr>`;
+  emps.forEach((e,i)=>{
+    const list=[];dem.slots.forEach((sl,k)=>{if(r.assign[k].includes(i))list.push([sl.day,sl.si,`${DAYS[sl.day]} ${sl.shift}`])});
+    list.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+    const low=r.cnt[i]<e.min;
+    s+=`<tr><td>${esc(e.name)}</td><td${low?' class="miss"':""}>${r.cnt[i]}</td><td>${e.min||"–"}</td><td>${e.max>=99?"–":e.max}</td><td>${list.map(x=>esc(x[2])).join(", ")||'<span class="muted">nghỉ cả tuần</span>'}</td></tr>`;
+  });
+  document.getElementById("stats").innerHTML=s+"</table>";
+}
+
+/* ---------- export ---------- */
+function download(name,blob){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+const csvCell=v=>/[",;\n]/.test(v)?`"${String(v).replace(/"/g,'""')}"`:v;
+function longRows(){
+  const {emps,dem,result:r}=state;const rows=[["Ngày","Ca","Nhân viên"]];
+  dem.slots.slice().map((s,i)=>({s,i})).sort((a,b)=>a.s.day-b.s.day||a.s.si-b.s.si)
+   .forEach(({s,i})=>{r.assign[i].forEach(e=>rows.push([DAYS[s.day],s.shift,emps[e].name]));for(let k=0;k<r.unfilled[i];k++)rows.push([DAYS[s.day],s.shift,"(THIẾU)"])});
+  return rows;
+}
+function gridRows(){
+  const {emps,dem,result:r}=state;const days=[0,1,2,3,4,5,6].filter(d=>dem.slots.some(s=>s.day===d));
+  const rows=[["Ca",...days.map(d=>DAYS[d])]];
+  dem.shifts.forEach((sh,si)=>rows.push([sh,...days.map(d=>{const i=dem.slots.findIndex(s=>s.day===d&&s.si===si);return i<0?"":r.assign[i].map(e=>emps[e].name).join(", ")+(r.unfilled[i]?` (thiếu ${r.unfilled[i]})`:"")})]));
+  return rows;
+}
+document.getElementById("exCsv").onclick=()=>{
+  const txt="﻿"+gridRows().map(r=>r.map(csvCell).join(",")).join("\r\n")+"\r\n\r\n"+longRows().map(r=>r.map(csvCell).join(",")).join("\r\n");
+  download("lich_lam_viec.csv",new Blob([txt],{type:"text/csv;charset=utf-8"}));
+};
+document.getElementById("exXlsx").onclick=()=>{
+  if(!window.XLSX) return alert("Không tải được thư viện Excel. Hãy dùng 'Xuất CSV'.");
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(gridRows()),"Lịch tuần");
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(longRows()),"Danh sách");
+  XLSX.writeFile(wb,"lich_lam_viec.xlsx");
+};
+document.getElementById("exPrint").onclick=()=>window.print();
+
+/* ---------- samples ---------- */
+const SAMPLE_EMP=`Tên,Số ca tối đa/tuần,Số ca tối thiểu,Ngày nghỉ,Ca không làm được
+Lan,5,3,CN,
+Minh,6,4,,Tối
+Hùng,5,3,T7;CN,
+Mai,4,2,T2,
+Tuấn,6,4,,
+Hoa,5,3,T4,Sáng
+Nam,5,3,,
+Linh,4,2,T6;T7,`;
+let SAMPLE_DEM="Ngày,Ca,Số người\n";
+for(const d of DAYS){for(const [sh,n] of [["Sáng",2],["Chiều",2],["Tối",d==="T6"||d==="T7"||d==="CN"?2:1]]) SAMPLE_DEM+=`${d},${sh},${n}\n`}
+document.getElementById("dlEmp").onclick=()=>download("mau_nhan_vien.csv",new Blob(["﻿"+SAMPLE_EMP],{type:"text/csv"}));
+document.getElementById("dlDem").onclick=()=>download("mau_nhu_cau_ca.csv",new Blob(["﻿"+SAMPLE_DEM],{type:"text/csv"}));
+
+/* ---------- wiring ---------- */
+function setStatus(id,msg,ok){const el=document.getElementById(id);el.textContent=msg;el.style.color=ok?"var(--ok)":"var(--bad)"}
+function loadEmp(rows){state.emps=parseEmployees(rows);setStatus("stEmp",`✓ ${state.emps.length} nhân viên`,true)}
+function loadDem(rows){state.dem=parseDemand(rows);setStatus("stDem",`✓ ${state.dem.slots.length} ô ca, ${state.dem.shifts.length} loại ca (${state.dem.shifts.join(", ")})`,true)}
+document.getElementById("fEmp").onchange=async e=>{try{loadEmp(await readFile(e.target.files[0]))}catch(x){state.emps=null;setStatus("stEmp","✗ "+x.message)}};
+document.getElementById("fDem").onchange=async e=>{try{loadDem(await readFile(e.target.files[0]))}catch(x){state.dem=null;setStatus("stDem","✗ "+x.message)}};
+document.getElementById("btnSample").onclick=()=>{loadEmp(parseCSV(SAMPLE_EMP));loadDem(parseCSV(SAMPLE_DEM));document.getElementById("btnRun").click()};
+document.getElementById("btnRun").onclick=()=>{
+  if(!state.emps||!state.dem) return alert("Hãy nhập cả file nhân viên và file nhu cầu ca (hoặc bấm 'Dùng dữ liệu mẫu').");
+  const opt={perDay:+document.getElementById("oPerDay").value||1,consec:+document.getElementById("oConsec").value||6,
+    rest:document.getElementById("oRest").checked,iter:+document.getElementById("oIter").value||400};
+  state.result=schedule(state.emps,state.dem,opt);
+  render();
+  document.getElementById("result").scrollIntoView({behavior:"smooth"});
+};
+</script>
+</body>
+</html>
