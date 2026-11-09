@@ -37,6 +37,13 @@ td.short{background:color-mix(in srgb,var(--bad) 12%,transparent)}
 .scroll{overflow-x:auto}
 .muted{color:var(--mut)}
 .status{font-size:13px;margin-top:6px}
+table.emp input[type=text],table.emp input[type=number]{width:100%;min-width:70px;padding:5px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font:inherit}
+table.emp input[type=number]{width:72px;min-width:0}
+table.emp td.nm input{min-width:130px}
+.days{display:flex;gap:4px;flex-wrap:wrap}
+.days label{display:flex;gap:2px;align-items:center;font-size:13px;border:1px solid var(--bd);border-radius:6px;padding:2px 6px;cursor:pointer;white-space:nowrap}
+table.emp input:focus-visible,button:focus-visible,.days label:focus-within{outline:2px solid var(--pri);outline-offset:1px}
+td.emptyrow{text-align:center;color:var(--mut)}
 </style>
 </head>
 <body>
@@ -46,28 +53,31 @@ td.short{background:color-mix(in srgb,var(--bad) 12%,transparent)}
 </header>
 <main>
   <section class="card">
-    <h2>1. Dữ liệu đầu vào</h2>
-    <div class="grid2">
-      <div>
-        <div class="drop"><b>Nhân viên</b> (.csv / .xlsx)<br><input type="file" id="fEmp" accept=".csv,.xlsx,.xls,.txt"></div>
-        <p class="hint">Cột: <code>Tên</code>, <code>Số ca tối đa/tuần</code>, <code>Số ca tối thiểu</code>, <code>Ngày nghỉ</code> (vd: T2;CN), <code>Ca không làm được</code> (vd: Tối). Chỉ cột <code>Tên</code> là bắt buộc.</p>
-        <div class="status" id="stEmp"></div>
-      </div>
-      <div>
-        <div class="drop"><b>Nhu cầu ca</b> (.csv / .xlsx)<br><input type="file" id="fDem" accept=".csv,.xlsx,.xls,.txt"></div>
-        <p class="hint">Cột: <code>Ngày</code> (T2…CN), <code>Ca</code> (Sáng/Chiều/Tối…), <code>Số người</code>. Thứ tự ca xuất hiện đầu tiên = thứ tự trong ngày.</p>
-        <div class="status" id="stDem"></div>
-      </div>
-    </div>
-    <div class="row" style="margin-top:12px">
+    <h2>1. Danh sách nhân viên</h2>
+    <div class="row" style="margin-bottom:12px">
       <button id="btnSample">Dùng dữ liệu mẫu</button>
       <button id="dlEmp">Tải file mẫu nhân viên</button>
       <button id="dlDem">Tải file mẫu nhu cầu ca</button>
     </div>
+    <div class="drop"><b>Nhân viên</b> (.csv / .xlsx)<br><input type="file" id="fEmp" accept=".csv,.xlsx,.xls,.txt"></div>
+    <p class="hint">Cột: <code>Tên</code>, <code>Số ca tối đa/tuần</code>, <code>Số ca tối thiểu</code>, <code>Ngày nghỉ</code> (vd: T2;CN), <code>Ca không làm được</code> (vd: Tối). Chỉ cột <code>Tên</code> là bắt buộc. Có thể sửa trực tiếp trong bảng bên dưới.</p>
+    <div class="status" id="stEmp"></div>
+    <div class="row" style="margin:10px 0 6px;justify-content:space-between">
+      <b id="empCount">0 nhân viên</b>
+      <button id="btnAddEmp">+ Thêm nhân viên</button>
+    </div>
+    <div style="overflow-x:auto"><table class="emp" id="empTable"><thead><tr><th>Tên</th><th>Tối đa/tuần</th><th>Tối thiểu</th><th>Ngày nghỉ</th><th>Ca không làm được (ngăn cách bằng ;)</th><th></th></tr></thead><tbody id="empBody"></tbody></table></div>
   </section>
 
   <section class="card">
-    <h2>2. Quy tắc</h2>
+    <h2>2. Nhu cầu ca</h2>
+    <div class="drop"><b>Nhu cầu ca</b> (.csv / .xlsx)<br><input type="file" id="fDem" accept=".csv,.xlsx,.xls,.txt"></div>
+    <p class="hint">Cột: <code>Ngày</code> (T2…CN), <code>Ca</code> (Sáng/Chiều/Tối…), <code>Số người</code>. Thứ tự ca xuất hiện đầu tiên = thứ tự trong ngày.</p>
+    <div class="status" id="stDem"></div>
+  </section>
+
+  <section class="card">
+    <h2>3. Quy tắc</h2>
     <div class="row">
       <label class="opt">Tối đa <input type="number" id="oPerDay" value="1" min="1" max="4"> ca / ngày / người</label>
       <label class="opt">Tối đa <input type="number" id="oConsec" value="6" min="1" max="7"> ngày làm liên tiếp</label>
@@ -79,7 +89,7 @@ td.short{background:color-mix(in srgb,var(--bad) 12%,transparent)}
 
   <section class="card" id="result" style="display:none">
     <div class="row" style="justify-content:space-between">
-      <h2 style="margin:0">3. Kết quả</h2>
+      <h2 style="margin:0">4. Kết quả</h2>
       <div class="row"><button id="exCsv">Xuất CSV</button><button id="exXlsx">Xuất Excel</button><button id="exPrint">In</button></div>
     </div>
     <div id="summary"></div>
@@ -103,7 +113,7 @@ function parseDay(v){
   const m={"t2":0,"thu 2":0,"thu hai":0,"2":0,"mon":0,"monday":0,
     "t3":1,"thu 3":1,"thu ba":1,"3":1,"tue":1,"tuesday":1,
     "t4":2,"thu 4":2,"thu tu":2,"4":2,"wed":2,"wednesday":2,
-    "t5":3,"thu 5":3,"thu nam":3,"5":3,"thu":3,"thursday":3,
+    "t5":3,"thu 5":3,"thu nam":3,"5":3,"thursday":3,
     "t6":4,"thu 6":4,"thu sau":4,"6":4,"fri":4,"friday":4,
     "t7":5,"thu 7":5,"thu bay":5,"7":5,"sat":5,"saturday":5,
     "cn":6,"chu nhat":6,"8":6,"sun":6,"sunday":6};
@@ -247,14 +257,14 @@ function schedule(emps,dem,opt){
   for(let i=0;i<opt.iter;i++){
     const r=solveOnce(emps,dem,opt,rng);
     if(!best||r.cost<best.cost) best=r;
-    if(performance.now()-t0>4000) break;
+    if(performance.now()-t0>2000) break;
   }
   return best;
 }
 
 /* ---------- render ---------- */
 function render(){
-  const {emps,dem,result:r}=state;
+  const emps=state.runEmps,{dem,result:r}=state;
   document.getElementById("result").style.display="block";
   const totalNeed=dem.slots.reduce((a,s)=>a+s.need,0);
   let html="";
@@ -291,13 +301,13 @@ function render(){
 function download(name,blob){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 const csvCell=v=>/[",;\n]/.test(v)?`"${String(v).replace(/"/g,'""')}"`:v;
 function longRows(){
-  const {emps,dem,result:r}=state;const rows=[["Ngày","Ca","Nhân viên"]];
+  const emps=state.runEmps,{dem,result:r}=state;const rows=[["Ngày","Ca","Nhân viên"]];
   dem.slots.slice().map((s,i)=>({s,i})).sort((a,b)=>a.s.day-b.s.day||a.s.si-b.s.si)
    .forEach(({s,i})=>{r.assign[i].forEach(e=>rows.push([DAYS[s.day],s.shift,emps[e].name]));for(let k=0;k<r.unfilled[i];k++)rows.push([DAYS[s.day],s.shift,"(THIẾU)"])});
   return rows;
 }
 function gridRows(){
-  const {emps,dem,result:r}=state;const days=[0,1,2,3,4,5,6].filter(d=>dem.slots.some(s=>s.day===d));
+  const emps=state.runEmps,{dem,result:r}=state;const days=[0,1,2,3,4,5,6].filter(d=>dem.slots.some(s=>s.day===d));
   const rows=[["Ca",...days.map(d=>DAYS[d])]];
   dem.shifts.forEach((sh,si)=>rows.push([sh,...days.map(d=>{const i=dem.slots.findIndex(s=>s.day===d&&s.si===si);return i<0?"":r.assign[i].map(e=>emps[e].name).join(", ")+(r.unfilled[i]?` (thiếu ${r.unfilled[i]})`:"")})]));
   return rows;
@@ -332,19 +342,65 @@ document.getElementById("dlDem").onclick=()=>download("mau_nhu_cau_ca.csv",new B
 
 /* ---------- wiring ---------- */
 function setStatus(id,msg,ok){const el=document.getElementById(id);el.textContent=msg;el.style.color=ok?"var(--ok)":"var(--bad)"}
-function loadEmp(rows){state.emps=parseEmployees(rows);setStatus("stEmp",`✓ ${state.emps.length} nhân viên`,true)}
+function hideResult(){state.result=null;document.getElementById("result").style.display="none"}
+function renderEmps(){
+  const body=document.getElementById("empBody"),L=state.emps||[];
+  document.getElementById("empCount").textContent=L.length+" nhân viên";
+  if(!L.length){body.innerHTML='<tr><td colspan="6" class="emptyrow">Chưa có nhân viên. Chọn file hoặc bấm Thêm nhân viên.</td></tr>';return}
+  body.innerHTML=L.map((e,i)=>`<tr data-i="${i}"><td class="nm"><input type="text" data-f="name" aria-label="Tên" value="${esc(e.name)}"></td>
+<td><input type="number" min="0" data-f="max" aria-label="Tối đa/tuần" value="${e.max>=99?"":e.max}"></td>
+<td><input type="number" min="0" data-f="min" aria-label="Tối thiểu" value="${e.min||0}"></td>
+<td><div class="days">${DAYS.map((d,k)=>`<label><input type="checkbox" data-f="off" data-d="${k}"${e.offDays.has(k)?" checked":""}>${d}</label>`).join("")}</div></td>
+<td><input type="text" data-f="shifts" aria-label="Ca không làm được" value="${esc([...e.offShifts].join("; "))}"></td>
+<td><button data-f="del" aria-label="Xoá dòng">Xoá</button></td></tr>`).join("");
+}
+function onEmpEdit(ev){
+  const t=ev.target,tr=t.closest("tr[data-i]");if(!tr)return;
+  const e=state.emps[+tr.dataset.i],f=t.dataset.f;if(!e)return;
+  if(f==="name")e.name=t.value;
+  else if(f==="max"){const v=parseInt(t.value);e.max=isNaN(v)?99:v}
+  else if(f==="min"){const v=parseInt(t.value);e.min=isNaN(v)?0:v}
+  else if(f==="off"){t.checked?e.offDays.add(+t.dataset.d):e.offDays.delete(+t.dataset.d)}
+  else if(f==="shifts")e.offShifts=new Set(t.value.split(/[;,\/|]+/).map(strip).filter(Boolean));
+  else return;
+  hideResult();
+}
+const empBody=document.getElementById("empBody");
+empBody.addEventListener("input",onEmpEdit);
+empBody.addEventListener("change",onEmpEdit);
+empBody.addEventListener("click",ev=>{
+  const b=ev.target.closest('button[data-f="del"]');if(!b)return;
+  state.emps.splice(+b.closest("tr").dataset.i,1);renderEmps();hideResult();
+});
+document.getElementById("btnAddEmp").onclick=()=>{
+  (state.emps=state.emps||[]).push({name:"",max:99,min:0,offDays:new Set(),offShifts:new Set()});
+  renderEmps();hideResult();
+  const ins=empBody.querySelectorAll('input[data-f="name"]');ins[ins.length-1]?.focus();
+};
+function loadEmp(rows){state.emps=parseEmployees(rows);renderEmps();setStatus("stEmp",`✓ ${state.emps.length} nhân viên`,true)}
 function loadDem(rows){state.dem=parseDemand(rows);setStatus("stDem",`✓ ${state.dem.slots.length} ô ca, ${state.dem.shifts.length} loại ca (${state.dem.shifts.join(", ")})`,true)}
-document.getElementById("fEmp").onchange=async e=>{try{loadEmp(await readFile(e.target.files[0]))}catch(x){state.emps=null;setStatus("stEmp","✗ "+x.message)}};
-document.getElementById("fDem").onchange=async e=>{try{loadDem(await readFile(e.target.files[0]))}catch(x){state.dem=null;setStatus("stDem","✗ "+x.message)}};
+document.getElementById("fEmp").onchange=async e=>{try{loadEmp(await readFile(e.target.files[0]))}catch(x){state.emps=null;renderEmps();hideResult();setStatus("stEmp","✗ "+x.message)}};
+document.getElementById("fDem").onchange=async e=>{try{loadDem(await readFile(e.target.files[0]))}catch(x){state.dem=null;hideResult();setStatus("stDem","✗ "+x.message)}};
 document.getElementById("btnSample").onclick=()=>{loadEmp(parseCSV(SAMPLE_EMP));loadDem(parseCSV(SAMPLE_DEM));document.getElementById("btnRun").click()};
 document.getElementById("btnRun").onclick=()=>{
-  if(!state.emps||!state.dem) return alert("Hãy nhập cả file nhân viên và file nhu cầu ca (hoặc bấm 'Dùng dữ liệu mẫu').");
+  const emps=(state.emps||[]).filter(e=>e.name.trim()!=="").map(e=>({...e,name:e.name.trim()}));
+  if(!emps.length){hideResult();setStatus("stEmp","✗ Không có nhân viên hợp lệ.");return}
+  if(!state.dem) return alert("Hãy nhập file nhu cầu ca (hoặc bấm 'Dùng dữ liệu mẫu').");
+  setStatus("stEmp",`✓ ${emps.length} nhân viên`,true);
+  const btn=document.getElementById("btnRun"),old=btn.textContent;
+  btn.textContent="Đang xếp…";btn.disabled=true;
   const opt={perDay:+document.getElementById("oPerDay").value||1,consec:+document.getElementById("oConsec").value||6,
     rest:document.getElementById("oRest").checked,iter:+document.getElementById("oIter").value||400};
-  state.result=schedule(state.emps,state.dem,opt);
-  render();
-  document.getElementById("result").scrollIntoView({behavior:"smooth"});
+  setTimeout(()=>{
+    try{
+      state.result=schedule(emps,state.dem,opt);
+      state.runEmps=emps;
+      render();
+      document.getElementById("result").scrollIntoView({behavior:"smooth"});
+    }finally{btn.textContent=old;btn.disabled=false}
+  },30);
 };
+renderEmps();
 </script>
 </body>
 </html>
