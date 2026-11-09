@@ -168,7 +168,8 @@ function parseEmployees(rows){
     const min=cMin>=0&&String(r[cMin]).trim()!==""?parseInt(r[cMin]):0;
     emps.push({name,max:isNaN(max)?99:max,min:isNaN(min)?0:min,
       offDays:new Set(cOffDay>=0?parseDayList(r[cOffDay]):[]),
-      offShifts:new Set(cOffShift>=0?String(r[cOffShift]).split(/[;,\/|]+/).map(strip).filter(Boolean):[])});
+      offShifts:new Set(cOffShift>=0?String(r[cOffShift]).split(/[;,\/|]+/).map(strip).filter(Boolean):[]),
+      offShiftsRaw:cOffShift>=0?String(r[cOffShift]).split(/[;,\/|]+/).map(x=>x.trim()).filter(Boolean):[]});
   }
   if(!emps.length) throw new Error("Không có nhân viên hợp lệ.");
   return emps;
@@ -351,7 +352,7 @@ function renderEmps(){
 <td><input type="number" min="0" data-f="max" aria-label="Tối đa/tuần" value="${e.max>=99?"":e.max}"></td>
 <td><input type="number" min="0" data-f="min" aria-label="Tối thiểu" value="${e.min||0}"></td>
 <td><div class="days">${DAYS.map((d,k)=>`<label><input type="checkbox" data-f="off" data-d="${k}"${e.offDays.has(k)?" checked":""}>${d}</label>`).join("")}</div></td>
-<td><input type="text" data-f="shifts" aria-label="Ca không làm được" value="${esc([...e.offShifts].join("; "))}"></td>
+<td><input type="text" data-f="shifts" aria-label="Ca không làm được" value="${esc((e.offShiftsRaw||[...e.offShifts]).join("; "))}"></td>
 <td><button data-f="del" aria-label="Xoá dòng">Xoá</button></td></tr>`).join("");
 }
 function onEmpEdit(ev){
@@ -361,7 +362,7 @@ function onEmpEdit(ev){
   else if(f==="max"){const v=parseInt(t.value);e.max=isNaN(v)?99:v}
   else if(f==="min"){const v=parseInt(t.value);e.min=isNaN(v)?0:v}
   else if(f==="off"){t.checked?e.offDays.add(+t.dataset.d):e.offDays.delete(+t.dataset.d)}
-  else if(f==="shifts")e.offShifts=new Set(t.value.split(/[;,\/|]+/).map(strip).filter(Boolean));
+  else if(f==="shifts"){e.offShiftsRaw=t.value.split(/[;,\/|]+/).map(x=>x.trim()).filter(Boolean);e.offShifts=new Set(e.offShiftsRaw.map(strip))}
   else return;
   hideResult();
 }
@@ -373,7 +374,7 @@ empBody.addEventListener("click",ev=>{
   state.emps.splice(+b.closest("tr").dataset.i,1);renderEmps();hideResult();
 });
 document.getElementById("btnAddEmp").onclick=()=>{
-  (state.emps=state.emps||[]).push({name:"",max:99,min:0,offDays:new Set(),offShifts:new Set()});
+  (state.emps=state.emps||[]).push({name:"",max:99,min:0,offDays:new Set(),offShifts:new Set(),offShiftsRaw:[]});
   renderEmps();hideResult();
   const ins=empBody.querySelectorAll('input[data-f="name"]');ins[ins.length-1]?.focus();
 };
