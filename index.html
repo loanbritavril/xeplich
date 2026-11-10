@@ -41,7 +41,7 @@ header{position:sticky;top:0;z-index:20;flex-wrap:wrap}
 #login button{border:0;border-radius:10px;padding:12px;font:inherit;font-weight:750;background:#246344;color:#fff;cursor:pointer}
 #login .lg-err{color:#8c3d32;font-size:13px;min-height:18px}
 .nav a.logout{border-color:#5b8069;cursor:pointer}
-</style>
+.eventrow{display:grid;grid-template-columns:1fr 1.4fr 32px;gap:7px;margin-bottom:7px;align-items:center}.eventrow input{padding:8px;font-size:12px}th.evh{background:#fff3df!important}.evt{font-size:10px;font-weight:700;color:#7b4d13;white-space:normal;min-width:86px}@media(max-width:780px){.eventrow{grid-template-columns:1fr 1fr 30px}}.savebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}.savebtn{background:var(--green)!important;color:#fff!important;border-color:var(--green)!important}.savestat{font-size:11px;color:var(--muted)}.savestat.ok{color:var(--green)}.savestat.dirty{color:#9a5b13;font-weight:700}.savestat.bad{color:var(--red);font-weight:700}.savenote{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:-4px 0 16px;color:var(--muted);font-size:12px}</style>
 </head>
 <body>
 <div id="login"><form id="loginForm" autocomplete="off"><div class="lg-logo">S</div><div><h2>Đăng nhập</h2><p>Nhập ID và mật khẩu để vào Staff Scheduler.</p></div><label for="lgId">ID<input id="lgId" type="text" autocomplete="username" autocapitalize="none" required></label><label for="lgPass">Mật khẩu<input id="lgPass" type="password" autocomplete="current-password" required></label><div class="lg-err" id="lgErr" role="alert"></div><button type="submit">Đăng nhập</button></form></div>
@@ -57,6 +57,7 @@ header{position:sticky;top:0;z-index:20;flex-wrap:wrap}
 </section>
 <section class="view" id="view-du-lieu" hidden>
 <div class="hero"><div><h2>Dữ liệu</h2><p>Bên trái là dữ liệu thiết lập một lần. Bên phải là dữ liệu của từng kỳ xếp lịch.</p></div><span class="tag">Dành cho quản lý</span></div>
+<div class="savenote" id="saveNote"><span>Dữ liệu nhập tay được lưu trong trình duyệt này sau khi bấm Lưu ở từng mục. File Excel cần nạp lại mỗi lần vào.</span><button type="button" class="smallbtn" id="clearSaved">Xoá dữ liệu đã lưu</button></div>
 <div class="layout">
 <section class="panel">
 <div class="panelhead"><div class="num">01</div><div><h3>Dữ liệu cố định</h3><p class="sub">Thiết lập một lần, cập nhật khi quy định thay đổi</p></div></div>
@@ -70,14 +71,27 @@ header{position:sticky;top:0;z-index:20;flex-wrap:wrap}
 <div class="shiftrow"><input class="shift-name" value="C" aria-label="Tên ca"><input class="shift-start" placeholder="Bắt đầu" aria-label="Giờ bắt đầu"><input class="shift-end" placeholder="Kết thúc" aria-label="Giờ kết thúc"><button class="remove" title="Xóa ca">×</button></div>
 </div><button class="smallbtn" id="addShift">＋ Thêm ca</button></div>
 <div class="field"><label>Số người tối thiểu từng ca theo bộ phận</label><div class="min-table-wrap"><table class="min-table"><thead id="minimumHead"></thead><tbody id="minimums"></tbody></table></div><p class="hint">Nhập số người tối thiểu cho từng ca ở từng bộ phận. Để 0 nếu bộ phận không cần người ở ca đó.</p></div>
-<div class="field"><label for="offDays">Số ngày OFF mỗi nhân viên trong kỳ 24–23</label><input id="offDays" type="number" min="6" max="6" value="6" readonly><p class="hint">Cố định 6 ngày OFF trong toàn bộ chu kỳ từ ngày 24 đến ngày 23 tháng sau; phân bổ đều nhất có thể và ưu tiên 2 ngày OFF liên tiếp.</p></div>\n<div class="field"><label>Số nhân viên bổ sung mỗi ca vào cuối tuần <span class="hint">— nhập riêng theo ca và bộ phận</span></label><div class="min-table-wrap"><table class="min-table"><thead id="weekendExtraHead"></thead><tbody id="weekendExtraBody"></tbody></table></div><p class="hint">Mỗi ô là số nhân viên bổ sung của bộ phận đó cho ca tương ứng vào thứ Bảy và Chủ nhật. Để 0 nếu không cần bổ sung. Nếu không đủ nhân sự hợp lệ, phần mềm sẽ cảnh báo.</p></div>
-<div class="field"><label>Số nhân viên bổ sung mỗi ca vào ngày cuối tháng <span class="hint">— nhập riêng theo ca và bộ phận</span></label><div class="min-table-wrap"><table class="min-table"><thead id="monthEndExtraHead"></thead><tbody id="monthEndExtraBody"></tbody></table></div><p class="hint">Áp dụng vào ngày cuối cùng của từng tháng. Nếu ngày đó trùng cuối tuần, mức bổ sung cuối tuần và cuối tháng được cộng lại cho từng bộ phận/ca.</p></div>
-<div class="field"><label for="rules">Quy định về xếp lịch</label><textarea id="rules" placeholder="Nhập thêm quy định nếu có...">1. Ngày OFF cố định của từng nhân viên được suy ra từ lịch trước; mỗi tháng luân chuyển sang thứ kế tiếp.\n2. Nhân viên chế độ không làm ca C và ca C2.\n3. Không xếp tất cả nhân viên chế độ cùng một ca trong cùng ngày, đặc biệt là ca A.\n4. Ưu tiên Senior Sup làm ca A; chỉ dùng SM thay thế khi không có Senior Sup hợp lệ cho ca A. SM ưu tiên ca B và C.\n5. Chu kỳ xếp lịch từ ngày 24 tháng này đến ngày 23 tháng sau; mỗi nhân viên có tổng cộng 6 ngày OFF trong cả chu kỳ, ưu tiên có 2 ngày OFF liên tiếp.\n6. Ngày xin nghỉ được ghi là OL.\n7. Ưu tiên yêu cầu nghỉ được gửi sớm hơn.\n8. Cuối tuần và ngày cuối cùng của mỗi tháng cần ưu tiên bố trí nhiều nhân viên hơn ngày thường; mức tăng có thể điều chỉnh ở các mục bên dưới. Nếu ngày cuối tháng trùng cuối tuần, hai mức tăng được cộng lại. Khi nhân viên đã đủ 6 ngày OFF, các ngày còn lại sẽ được xếp vào ca, không tự thêm OFF.\n9. Ưu tiên xếp cùng một ca ở các ngày làm việc nằm giữa hai ngày OFF.\n10. Nếu hôm trước làm ca C thì hôm sau không được làm ca A, A1 hoặc B.\n11. Nếu hôm trước làm ca B thì hôm sau không được làm ca A.\n12. Nếu hôm trước làm ca C2 thì hôm sau không được làm ca A hoặc A1.</textarea></div>
+<div class="field"><label for="offDays">Số ngày OFF mỗi nhân viên trong kỳ 24–23</label><input id="offDays" type="number" min="6" max="6" value="6" readonly><p class="hint">Cố định 6 ngày OFF trong toàn bộ chu kỳ từ ngày 24 đến ngày 23 tháng sau; phân bổ đều nhất có thể và ưu tiên 2 ngày OFF liên tiếp.</p></div>
+<div class="field"><label>Số nhân viên bổ sung mỗi ca vào cuối tuần <span class="hint">— nhập riêng theo ca và bộ phận</span></label><div class="min-table-wrap"><table class="min-table"><thead id="weekendExtraHead"></thead><tbody id="weekendExtraBody"></tbody></table></div><p class="hint">Mỗi ô là số nhân viên bổ sung của bộ phận đó cho ca tương ứng vào thứ Bảy và Chủ nhật. Để 0 nếu không cần bổ sung. Nếu không đủ nhân sự hợp lệ, phần mềm sẽ cảnh báo.</p></div>
+<div class="field"><label>Số nhân viên bổ sung mỗi ca vào ngày có sự kiện <span class="hint">— nhập riêng theo ca và bộ phận</span></label><div class="min-table-wrap"><table class="min-table"><thead id="eventExtraHead"></thead><tbody id="eventExtraBody"></tbody></table></div><p class="hint">Áp dụng vào các ngày có sự kiện đã chọn ở mục Dữ liệu từng kỳ. Nếu ngày đó trùng cuối tuần, mức bổ sung cuối tuần và sự kiện được cộng lại cho từng bộ phận/ca.</p></div>
+<div class="field"><label for="rules">Quy định về xếp lịch</label><textarea id="rules" placeholder="Nhập thêm quy định nếu có...">1. Ngày OFF cố định của từng nhân viên được suy ra từ lịch trước; mỗi tháng luân chuyển sang thứ kế tiếp.
+2. Nhân viên chế độ không làm ca C và ca C2.
+3. Không xếp tất cả nhân viên chế độ cùng một ca trong cùng ngày, đặc biệt là ca A.
+4. Ưu tiên Senior Sup làm ca A; chỉ dùng SM thay thế khi không có Senior Sup hợp lệ cho ca A. SM ưu tiên ca B và C.
+5. Chu kỳ xếp lịch từ ngày 24 tháng này đến ngày 23 tháng sau; mỗi nhân viên có tổng cộng 6 ngày OFF trong cả chu kỳ, ưu tiên có 2 ngày OFF liên tiếp.
+6. Ngày xin nghỉ được ghi là OL.
+7. Ưu tiên yêu cầu nghỉ được gửi sớm hơn.
+8. Cuối tuần và các ngày có sự kiện cần ưu tiên bố trí nhiều nhân viên hơn ngày thường; mức tăng có thể điều chỉnh ở các mục bên dưới. Nếu ngày có sự kiện trùng cuối tuần, hai mức tăng được cộng lại. Khi nhân viên đã đủ 6 ngày OFF, các ngày còn lại sẽ được xếp vào ca, không tự thêm OFF.
+9. Ưu tiên xếp cùng một ca ở các ngày làm việc nằm giữa hai ngày OFF.
+10. Nếu hôm trước làm ca C thì hôm sau không được làm ca A, A1 hoặc B.
+11. Nếu hôm trước làm ca B thì hôm sau không được làm ca A.
+12. Nếu hôm trước làm ca C2 thì hôm sau không được làm ca A hoặc A1.</textarea></div>
 <div class="field"><label>Mẫu Excel lịch làm việc</label><div class="filebox"><input id="templateFile" type="file" accept=".xlsx,.xls,.csv"><div class="file-status" id="templateStatus">Chưa chọn file</div></div></div>
 </section>
 <section class="panel weekly">
 <div class="panelhead"><div class="num">02</div><div><h3>Dữ liệu từng kỳ</h3><p class="sub">Cung cấp dữ liệu mới cho mỗi kỳ xếp lịch</p></div></div>
 <div class="field"><label>Chu kỳ xếp lịch <span class="hint">— từ ngày 24 tháng này đến ngày 23 tháng sau</span></label><div class="twocol"><div><label class="hint" for="startDate">Từ ngày</label><input id="startDate" type="date"></div><div><label class="hint" for="endDate">Đến ngày</label><input id="endDate" type="date"></div></div></div>
+<div class="field"><label>Ngày có sự kiện <span class="hint">— chọn ngày và ghi tên sự kiện</span></label><div id="events"></div><button class="smallbtn" id="addEvent" type="button">＋ Thêm ngày sự kiện</button><p class="hint">Các ngày này được bổ sung thêm nhân viên theo bảng "Số nhân viên bổ sung mỗi ca vào ngày có sự kiện" và được đánh dấu trên lịch khi xuất ra.</p></div>
 <div class="field"><label>Lịch trước để xếp nối tiếp</label><div class="filebox"><div class="filetop"><div><strong>Import lịch đã xếp</strong><p>Excel lịch của kỳ trước</p></div><span>📅</span></div><input id="previousFile" type="file" accept=".xlsx,.xls,.csv"><div class="file-status" id="previousStatus">Chưa chọn file</div></div></div>
 <div class="field"><label>Danh sách book lịch nghỉ của nhân viên <span class="hint">— không bắt buộc</span></label><div class="filebox"><div class="filetop"><div><strong>Import lịch nghỉ</strong><p>Excel đăng ký nghỉ trong kỳ này</p></div><span>🌿</span></div><input id="leaveFile" type="file" accept=".xlsx,.xls,.csv"><div class="file-status" id="leaveStatus">Chưa chọn file</div></div></div>
 <div class="field"><label for="requests">Yêu cầu đặc biệt</label><textarea id="requests" placeholder="Mỗi yêu cầu một dòng, ghi rõ tên và ngày. Ví dụ:
@@ -112,6 +126,7 @@ Lê Hoa ưu tiên ca A ngày 02/11"></textarea><p class="hint">Được hỗ tr�
 <p><b>Đăng ký nghỉ:</b> cột A là ngày gửi, cột B là các ngày nghỉ cách nhau dấu phẩy, ghi ngày và tên tháng tiếng Anh, cột C là tên.</p>
 <table><tr><td>2026-10-20</td><td>27 Oct, 30 Oct</td><td>NANCY</td></tr></table>
 <p><b>Lịch kỳ trước và mẫu lịch:</b> file roster có hàng ngày ở hàng 3, tên bộ phận ở cột A, tên nhân viên ở cột B và mã ca (A, A1, B, C, C2, OFF, OL) từ cột C. Ngày OFF cố định được suy ra từ lịch kỳ trước, nên lịch phải có dữ liệu đến ngày 23 của chu kỳ.</p>
+<p><b>Ngày có sự kiện:</b> trong mục Dữ liệu, bấm Thêm ngày sự kiện rồi chọn ngày và ghi tên sự kiện. Những ngày này được bổ sung nhân viên theo bảng bổ sung sự kiện và được đánh dấu trên lịch (dòng EVENT trong file Excel xuất ra).</p>
 <p><b>Yêu cầu đặc biệt:</b> ví dụ <code>Nguyễn An không làm ca C ngày 25/10</code>, <code>Trần Bình cần nghỉ ngày 28/10</code>, <code>Lê Hoa ưu tiên ca A ngày 02/11</code>.</p></section>
 <section class="panel"><h3>Câu hỏi thường gặp</h3><div class="guide">
 <details><summary>Vì sao có cảnh báo về ngày 23?</summary><p>Quy tắc chuyển ca (ví dụ C rồi A) chỉ kiểm tra được nếu lịch kỳ trước có dữ liệu cho ngày cuối kỳ. Hãy nạp lịch đầy đủ đến ngày 23.</p></details>
@@ -149,9 +164,9 @@ function buildExtraTable(type){
  const shifts=[...document.querySelectorAll('.shift-name')].map(i=>i.value.trim()).filter(Boolean);
  const previous={};body.querySelectorAll('input[data-extra-shift][data-extra-dept]').forEach(i=>previous[i.dataset.extraShift+'|'+i.dataset.extraDept]=i.value);
  head.innerHTML='<tr><th>Bộ phận / Ca</th>'+shifts.map(sh=>'<th>'+esc(sh)+'</th>').join('')+'</tr>';
- body.innerHTML=departments.map(dept=>'<tr><td><strong>'+esc(dept)+'</strong></td>'+shifts.map(sh=>{const k=sh+'|'+dept;return '<td><input type="number" min="0" max="20" step="1" value="'+esc(previous[k]??'0')+'" data-extra-type="'+type+'" data-extra-shift="'+esc(sh)+'" data-extra-dept="'+esc(dept)+'" aria-label="Số nhân viên bổ sung '+esc(dept)+' ca '+esc(sh)+' '+(type==='weekend'?'cuối tuần':'cuối tháng')+'"></td>';}).join('')+'</tr>').join('');
+ body.innerHTML=departments.map(dept=>'<tr><td><strong>'+esc(dept)+'</strong></td>'+shifts.map(sh=>{const k=sh+'|'+dept;return '<td><input type="number" min="0" max="20" step="1" value="'+esc(previous[k]??'0')+'" data-extra-type="'+type+'" data-extra-shift="'+esc(sh)+'" data-extra-dept="'+esc(dept)+'" aria-label="Số nhân viên bổ sung '+esc(dept)+' ca '+esc(sh)+' '+(type==='weekend'?'cuối tuần':'ngày sự kiện')+'"></td>';}).join('')+'</tr>').join('');
 }
-function buildExtraTables(){buildExtraTable('weekend');buildExtraTable('monthEnd');}
+function buildExtraTables(){buildExtraTable('weekend');buildExtraTable('event');}
 function getExtraCount(type,shift,dept){const input=document.querySelector('input[data-extra-type="'+CSS.escape(type)+'"][data-extra-shift="'+CSS.escape(shift)+'"][data-extra-dept="'+CSS.escape(dept)+'"]');return Math.max(0,Number(input?.value||0));}
 function buildMinimums(){
  const head=$('minimumHead'),body=$('minimums'); if(!head||!body)return;
@@ -238,8 +253,9 @@ function checkData(){
  if(!fileData.previousFile)issues.push('Chưa import lịch trước để xếp nối tiếp.');
  if(issues.length){notice('Cần bổ sung hoặc xác nhận:\n• '+issues.join('\n• '),'warn');return false;}
  const normal=fileData.normalFile.employees||[], regime=fileData.specialEmployeeFile?.employees||[];
- const unique=new Set([...normal,...regime].map(e=>e.name.trim().toUpperCase()));
- notice('Đã đọc '+unique.size+' nhân viên duy nhất; '+regime.length+' nhân viên trong danh sách chế độ; '+(fileData.leaveFile?.requests||[]).length+' lượt đăng ký nghỉ. OFF cố định được suy ra từ lịch trước và luân chuyển sang thứ kế tiếp mỗi tháng.','success');return true;
+ const unique=new Set(normal.map(e=>e.name.trim().toUpperCase()));
+ const regimeIn=regime.filter(e=>unique.has(e.name.trim().toUpperCase())).length,regimeOut=regime.length-regimeIn;
+ notice('Sẽ xếp lịch cho '+unique.size+' nhân viên trong danh sách; '+regimeIn+' người thuộc chế độ'+(regimeOut?' ('+regimeOut+' tên trong file chế độ không có trong danh sách nên bị bỏ qua)':'')+'; '+(fileData.leaveFile?.requests||[]).length+' lượt đăng ký nghỉ. OFF cố định được suy ra từ lịch trước và luân chuyển sang thứ kế tiếp mỗi tháng.','success');return true;
 }
 $('checkBtn').onclick=checkData;
 
@@ -322,19 +338,20 @@ function parseLeaveToken(token,start,end){
  return candidates[0]||null;
 }
 function buildEmployeeSet(){
- const byName=new Map();
+ const byName=new Map();const ignoredRegime=[];
  (fileData.normalFile?.employees||[]).forEach(e=>byName.set(e.name.trim().toUpperCase(),{...e,status:'normal'}));
- (fileData.specialEmployeeFile?.employees||[]).forEach(e=>{const k=e.name.trim().toUpperCase();if(byName.has(k)){byName.get(k).status='regime';if(e.department)byName.get(k).department=e.department;}else byName.set(k,{...e,status:'regime'});});
+ (fileData.specialEmployeeFile?.employees||[]).forEach(e=>{const k=e.name.trim().toUpperCase();if(byName.has(k)){byName.get(k).status='regime';if(e.department)byName.get(k).department=e.department;}else ignoredRegime.push(e.name.trim());});
  const templateMeta=getScheduleMeta(fileData.templateFile?.rows||[]);
  const order=templateMeta.employeeOrder||[];
  const orderIndex=new Map(order.map((name,i)=>[name,i]));
- return [...byName.values()].sort((a,b)=>{
+ const sorted=[...byName.values()].sort((a,b)=>{
   const ka=a.name.trim().toUpperCase(),kb=b.name.trim().toUpperCase();
   const ia=orderIndex.has(ka)?orderIndex.get(ka):Number.MAX_SAFE_INTEGER;
   const ib=orderIndex.has(kb)?orderIndex.get(kb):Number.MAX_SAFE_INTEGER;
   if(ia!==ib)return ia-ib;
   return a.department.localeCompare(b.department)||a.name.localeCompare(b.name);
  });
+ sorted.ignoredRegime=ignoredRegime;return sorted;
 }
 function normalizedName(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();}
 function hasNameToken(name, target){return normalizedName(name).split(' ').includes(target);}
@@ -351,6 +368,9 @@ function generateDraftSchedule(){
  employees.forEach(e=>{const k=e.name.toUpperCase();if(prior.offWeekday[k]!==undefined)weekdayByName[k]=prior.offWeekday[k];else{weekdayByName[k]=null;missingFixed++;}});
  const schedule={};employees.forEach(e=>schedule[e.name.toUpperCase()]={});
  const warnings=[];
+ if(employees.ignoredRegime?.length)warnings.push('Bỏ qua '+employees.ignoredRegime.length+' tên trong file chế độ vì không có trong danh sách nhân viên: '+employees.ignoredRegime.slice(0,8).join(', ')+(employees.ignoredRegime.length>8?'...':'')+'.');
+ const eventMap=getEvents();
+ [...eventMap.keys()].filter(k=>!days.some(d=>dateKey(d)===k)).forEach(k=>warnings.push('Ngày sự kiện '+k+' ('+eventMap.get(k)+') nằm ngoài chu kỳ xếp lịch nên bị bỏ qua.'));
  const specialRequests=parseSpecialRequests($('requests').value,employees,days,shiftNames);
  warnings.push(...specialRequests.warnings);
  if(!refDate)warnings.push('Không tìm thấy hàng ngày trong file lịch trước. Quy tắc OFF cố định không thể suy ra từ lịch cũ.');
@@ -361,6 +381,7 @@ function generateDraftSchedule(){
   const da=a.submitted instanceof Date?a.submitted.getTime():Infinity,db=b.submitted instanceof Date?b.submitted.getTime():Infinity;return da-db;
  });
  const leaveCandidates=[];
+ {const unknown=[...new Set(leaveRows.map(r=>r.name.trim().toUpperCase()).filter(k=>k&&!employees.some(e=>e.name.toUpperCase()===k)))];if(unknown.length)warnings.push('Bỏ qua đăng ký nghỉ của '+unknown.length+' tên không có trong danh sách nhân viên: '+unknown.slice(0,8).join(', ')+(unknown.length>8?'...':'')+'.');}
  leaveRows.forEach(req=>{
   const k=req.name.trim().toUpperCase();
   req.dates.forEach(tok=>{const d=parseLeaveToken(tok,start,end);if(d)leaveCandidates.push({key:k,date:d,req});});
@@ -422,6 +443,7 @@ function generateDraftSchedule(){
  });
  // Assign shifts each day: cover per-department minimums first, then balance remaining staff.
  const dailyStats={};
+ const shiftSet=new Set(shiftNames.map(x=>String(x).toUpperCase()));
  days.forEach(day=>{
   const dk=dateKey(day),assigned={},counts={};
   // PDM is removed from the department configuration UI. If imported employee data still contains PDM, keep a count bucket so scheduling does not crash; these employees can still be assigned as remaining staff.
@@ -450,6 +472,19 @@ function generateDraftSchedule(){
    if(prev==='B'&&cur==='A')return false;
    if(prev==='C2'&&['A','A1'].includes(cur))return false;
    return true;
+  }
+  function lastWorkedShift(e,day){
+   const k=e.name.toUpperCase();const idx=days.findIndex(d=>dateKey(d)===dateKey(day));
+   for(let i=idx-1;i>=0;i--){const v=String(schedule[k][dateKey(days[i])]||'').toUpperCase();if(shiftSet.has(v))return v;}
+   return '';
+  }
+  // Giữ ca: đổi ca giữa hai ngày làm liên tiếp bị phạt nặng; đổi ca sau ngày OFF/OL chỉ phạt nhẹ.
+  function continuityCost(e,sh,day){
+   if(isBetty(e))return 0;
+   const cur=String(sh).toUpperCase(),prev=previousShift(e,day);
+   if(shiftSet.has(prev))return prev===cur?0:14;
+   // Bắt đầu một đợt làm việc mới (sau OFF/OL): xoay ca để chia đều, tránh dồn vào một ca.
+   return shiftConcentrationPenalty(e,sh)+shiftVarietyPenalty(e,sh);
   }
   function shiftVarietyPenalty(e, sh){
    if(isBetty(e))return 0; // Betty is intentionally restricted to A.
@@ -482,7 +517,7 @@ function generateDraftSchedule(){
     const regimePenaltyB=b.status==='regime'?(Object.values(assigned).filter(x=>x==='A').length*0.5):0;
     const rolePenalty=e=>e.department==='Senior Sup'&&sh!=='A'?3:e.department==='SM'&&sh==='A'?6:e.department==='SM'&&['B','C'].includes(sh)?-2:0;
     const prefPenalty=e=>{const p=specialRequests.preferred[e.name.toUpperCase()+'|'+dateKey(day)];return p?(p===sh?-10:10):0;};
-    return (ha+ca+regimePenaltyA+rolePenalty(a)+prefPenalty(a)+shiftVarietyPenalty(a,sh)+shiftConcentrationPenalty(a,sh))-(hb+cb+regimePenaltyB+rolePenalty(b)+prefPenalty(b)+shiftVarietyPenalty(b,sh)+shiftConcentrationPenalty(b,sh));
+    return (0.3*(ha+ca)+regimePenaltyA+rolePenalty(a)+prefPenalty(a)+continuityCost(a,sh,day))-(0.3*(hb+cb)+regimePenaltyB+rolePenalty(b)+prefPenalty(b)+continuityCost(b,sh,day));
    });return pool[0]||null;
   }
   // Senior Sup is first choice for A; SM is fallback only if no Senior Sup is eligible.
@@ -499,7 +534,7 @@ function generateDraftSchedule(){
      const worked=Object.values(schedule[key]||{}).map(v=>String(v||'').toUpperCase()).filter(v=>shiftNames.includes(v));
      const nonACount=worked.filter(v=>v!=='A').length;
      const dominantPenalty=aCount>0&&aCount>=nonACount?12+(aCount-nonACount)*3:0;
-     return aCount*4+(prior.shiftCounts[key]?.A||0)*0.75+dominantPenalty+shiftConcentrationPenalty(e,'A');
+     return aCount*0.6+(prior.shiftCounts[key]?.A||0)*0.15+continuityCost(e,'A',day);
     };
     return score(a)-score(b)||a.name.localeCompare(b.name);
    });
@@ -509,11 +544,11 @@ function generateDraftSchedule(){
   }
   const demands=[];shifts.forEach(sh=>Object.entries(sh.minimums||{}).forEach(([dep,n])=>{for(let i=0;i<Number(n||0);i++)demands.push({dep,sh:sh.name,extra:false});}));
   const isWeekend=[0,6].includes(day.getDay());
-  const isMonthEnd=day.getDate()===new Date(day.getFullYear(),day.getMonth()+1,0).getDate();
+  const isMonthEnd=eventMap.has(dk);
   if(isWeekend||isMonthEnd){
    shifts.forEach(sh=>departments.forEach(dep=>{
     const weekendAdd=isWeekend?getExtraCount('weekend',sh.name,dep):0;
-    const monthEndAdd=isMonthEnd?getExtraCount('monthEnd',sh.name,dep):0;
+    const monthEndAdd=isMonthEnd?getExtraCount('event',sh.name,dep):0;
     for(let i=0;i<weekendAdd+monthEndAdd;i++)demands.push({dep,sh:sh.name,extra:true});
    }));
   }
@@ -526,7 +561,7 @@ function generateDraftSchedule(){
     pool.sort((a,b)=>{
      const penalty=e=>e.department==='Senior Sup'&&sh!=='A'?4:e.department==='SM'&&sh==='A'?6:e.department==='SM'&&['B','C'].includes(sh)?-2:0;
      const prefPenalty=e=>{const p=specialRequests.preferred[e.name.toUpperCase()+'|'+dk];return p?(p===sh?-10:10):0;};
-     return (penalty(a)+prefPenalty(a)+shiftVarietyPenalty(a,sh)+shiftConcentrationPenalty(a,sh))-(penalty(b)+prefPenalty(b)+shiftVarietyPenalty(b,sh)+shiftConcentrationPenalty(b,sh))||((counts[a.department]?.[sh]||0)-(counts[b.department]?.[sh]||0))||a.name.localeCompare(b.name);
+     return (penalty(a)+prefPenalty(a)+continuityCost(a,sh,day))-(penalty(b)+prefPenalty(b)+continuityCost(b,sh,day))||((counts[a.department]?.[sh]||0)-(counts[b.department]?.[sh]||0))||a.name.localeCompare(b.name);
     });
     e=pool[0]||null;
    }else e=choose(dep,sh);
@@ -546,8 +581,8 @@ function generateDraftSchedule(){
     const continuityPenalty=(sh)=>lastWorked && sh!==lastWorked ? 4 : 0;
     const preferred=specialRequests.preferred[e.name.toUpperCase()+'|'+dk]||'';
     const isWeekendDay=[0,6].includes(day.getDay());
-    const isMonthEndDay=day.getDate()===new Date(day.getFullYear(),day.getMonth()+1,0).getDate();
-    const score=sh=>((counts[e.department]?.[sh]||0)*1)+( (prior.shiftCounts[e.name.toUpperCase()]?.[sh]||0)*0.25 )+(e.status==='regime'&&sh==='A'?2:0)+(e.department==='Senior Sup'&&sh!=='A'?5:0)+(e.department==='SM'&&sh==='A'?8:0)+(e.department==='SM'&&['B','C'].includes(sh)?-3:0)+continuityPenalty(sh)+shiftVarietyPenalty(e,sh)+shiftConcentrationPenalty(e,sh)-(((isWeekendDay&&getExtraCount('weekend',sh,e.department)>0)||(isMonthEndDay&&getExtraCount('monthEnd',sh,e.department)>0))&&['A','A1','B'].includes(sh)?0.35:0)+(preferred?(sh===preferred?-10:10):0);
+    const isMonthEndDay=eventMap.has(dk);
+    const score=sh=>((counts[e.department]?.[sh]||0)*1)+( (prior.shiftCounts[e.name.toUpperCase()]?.[sh]||0)*0.25 )+(e.status==='regime'&&sh==='A'?2:0)+(e.department==='Senior Sup'&&sh!=='A'?5:0)+(e.department==='SM'&&sh==='A'?8:0)+(e.department==='SM'&&['B','C'].includes(sh)?-3:0)+continuityCost(e,sh,day)-(((isWeekendDay&&getExtraCount('weekend',sh,e.department)>0)||(isMonthEndDay&&getExtraCount('event',sh,e.department)>0))&&['A','A1','B'].includes(sh)?0.35:0)+(preferred?(sh===preferred?-10:10):0);
     return score(a)+(e.status==='regime'?regimeA*5:0)-score(b)-(e.status==='regime'?regimeB*5:0);
    });const sh=opts[0];assigned[e.name.toUpperCase()]=sh;used.add(e.name.toUpperCase());counts[e.department][sh]++;
   });
@@ -555,7 +590,7 @@ function generateDraftSchedule(){
   shifts.forEach(sh=>Object.entries(sh.minimums||{}).forEach(([dep,n])=>{const actual=counts[dep]?.[sh.name]||0;if(actual<Number(n||0))warnings.push(day.toLocaleDateString('vi-VN')+' — '+dep+' ca '+sh.name+': cần '+n+', mới xếp được '+actual+'.');}));
   dailyStats[dk]=counts;
   const regimeAssigned=employees.filter(e=>e.status==='regime'&&['A','A1','B'].includes(schedule[e.name.toUpperCase()][dk]));
-  if(regimeAssigned.length>1&&new Set(regimeAssigned.map(e=>schedule[e.name.toUpperCase()][dk])).size===1)warnings.push(day.toLocaleDateString('vi-VN')+': toàn bộ nhân viên chế độ đang cùng một ca.');
+  
  });
  // Enforce shift diversity across the whole cycle where feasible: everyone except Betty must work at least two different shifts.
  // If a safe move is impossible without breaking minimum staffing or adjacent-day rules, leave the roster intact and warn.
@@ -583,43 +618,121 @@ function generateDraftSchedule(){
   }
   return true;
  };
+ // ===== Dọn lịch: gộp mỗi đợt làm việc (giữa hai ngày OFF/OL) về cùng một ca =====
+ const SH=v=>String(v||'').toUpperCase();
+ const isLeader=e=>['Senior Sup','SM'].includes(e.department);
+ const reqCount=(dep,shName,day)=>{
+  const sh=shifts.find(x=>SH(x.name)===SH(shName));
+  let n=Number(sh?.minimums?.[dep]||0);
+  if([0,6].includes(day.getDay()))n+=getExtraCount('weekend',sh?.name,dep);
+  if(eventMap.has(dateKey(day)))n+=getExtraCount('event',sh?.name,dep);
+  return n;
+ };
+ const countOn=(dep,dk,code)=>employees.filter(x=>x.department===dep&&SH(schedule[x.name.toUpperCase()][dk])===code).length;
+ const switchesOf=emp=>{let n=0,prev='';const k=emp.name.toUpperCase();days.forEach(d=>{const v=SH(schedule[k][dateKey(d)]);if(shiftSet.has(v)){if(prev&&v!==prev)n++;prev=v;}else prev='';});return n;};
+ const deptSwitches=dep=>employees.filter(e=>e.department===dep).reduce((t,e)=>t+switchesOf(e),0);
+ const stretchesOf=emp=>{const k=emp.name.toUpperCase(),out=[];let cur=[];days.forEach(d=>{if(shiftSet.has(SH(schedule[k][dateKey(d)])))cur.push(d);else{if(cur.length)out.push(cur);cur=[];}});if(cur.length)out.push(cur);return out;};
+ const prefersCurrent=(e,dk)=>{const p=specialRequests.preferred[e.name.toUpperCase()+'|'+dk];return !!p&&SH(p)===SH(schedule[e.name.toUpperCase()][dk]);};
+ const regimeUniformOn=dk=>{const w=employees.filter(e=>e.status==='regime'&&['A','A1','B'].includes(SH(schedule[e.name.toUpperCase()][dk])));return w.length>1&&new Set(w.map(e=>SH(schedule[e.name.toUpperCase()][dk]))).size===1;};
+ function tryChange(emp,day,target,log){
+  const k=emp.name.toUpperCase(),dk=dateKey(day),source=SH(schedule[k][dk]);
+  const wasUniform=regimeUniformOn(dk);
+  if(!shiftSet.has(source)||source===target||prefersCurrent(emp,dk))return false;
+  if(!validForDiversity(emp,day,target))return false;
+  if(countOn(emp.department,dk,source)-1>=reqCount(emp.department,source,day)&&!(source==='A'&&isLeader(emp))){
+   const old0=schedule[k][dk];schedule[k][dk]=target;
+   if(!wasUniform&&regimeUniformOn(dk)){schedule[k][dk]=old0;return false;}
+   log.push({k,dk,old:old0});return true;
+  }
+  let best=null,bestDelta=Infinity;
+  employees.forEach(o=>{
+   if(o===emp||o.department!==emp.department)return;
+   const ok2=o.name.toUpperCase();
+   if(SH(schedule[ok2][dk])!==target||prefersCurrent(o,dk)||!validForDiversity(o,day,source))return;
+   if((source==='A'||target==='A')&&isLeader(o)!==isLeader(emp))return;
+   const b0=switchesOf(o);const old=schedule[ok2][dk];schedule[ok2][dk]=source;const d=switchesOf(o)-b0;schedule[ok2][dk]=old;
+   if(d<bestDelta){bestDelta=d;best=o;}
+  });
+  if(!best)return false;
+  const bk=best.name.toUpperCase();
+  const oldE=schedule[k][dk],oldB=schedule[bk][dk];
+  schedule[k][dk]=target;schedule[bk][dk]=source;
+  if(!wasUniform&&regimeUniformOn(dk)){schedule[k][dk]=oldE;schedule[bk][dk]=oldB;return false;}
+  log.push({k,dk,old:oldE},{k:bk,dk,old:oldB});return true;
+ }
+ const revert=log=>{for(let i=log.length-1;i>=0;i--)schedule[log[i].k][log[i].dk]=log[i].old;};
+ const switchesBefore=employees.reduce((t,e)=>t+switchesOf(e),0);
+ function smoothEmployee(emp){
+  const k=emp.name.toUpperCase();let improved=false;
+  stretchesOf(emp).forEach(st=>{
+   const vals=st.map(d=>SH(schedule[k][dateKey(d)]));
+   const uniq=[...new Set(vals)];
+   if(uniq.length<2)return;
+   uniq.sort((x,y)=>vals.filter(v=>v===y).length-vals.filter(v=>v===x).length);
+   for(const target of uniq){
+    const before=deptSwitches(emp.department),log=[];let ok=true;
+    for(const d of st){if(SH(schedule[k][dateKey(d)])===target)continue;if(!tryChange(emp,d,target,log)){ok=false;break;}}
+    if(ok&&deptSwitches(emp.department)<before){improved=true;break;}
+    revert(log);
+   }
+  });
+  return improved;
+ }
+ for(let pass=0;pass<8;pass++){let any=false;employees.forEach(e=>{if(!isBetty(e)&&smoothEmployee(e))any=true;});if(!any)break;}
+ // Mỗi người (trừ Betty) cần ít nhất 2 loại ca trong chu kỳ: đổi nguyên một đợt làm việc, không đổi lẻ từng ngày.
  employees.forEach(emp=>{
   if(isBetty(emp))return;
   const k=emp.name.toUpperCase();
-  const getWorkedDays=()=>days.filter(d=>shiftNames.some(sh=>String(sh).toUpperCase()===String(schedule[k][dateKey(d)]||'').toUpperCase()));
-  const getUnique=()=>[...new Set(getWorkedDays().map(d=>String(schedule[k][dateKey(d)]).toUpperCase()))];
-  let unique=getUnique();
-  if(unique.length>=2)return;
-  let moved=false;
-  const workedDays=getWorkedDays();
-  for(const day of workedDays){
-   const dk=dateKey(day),source=String(schedule[k][dk]).toUpperCase();
+  const workedSet=()=>new Set(days.map(d=>SH(schedule[k][dateKey(d)])).filter(v=>shiftSet.has(v)));
+  if(workedSet().size!==1)return;
+  const dep=emp.department,before=deptSwitches(dep);
+  const strs=stretchesOf(emp).sort((x,y)=>x.length-y.length);
+  let done=false;
+  for(const st of strs){
    for(const targetRaw of shiftNames){
-    const target=String(targetRaw).toUpperCase();
-    if(!validForDiversity(emp,day,target))continue;
-    const sourceCount=employees.filter(x=>x.department===emp.department&&String(schedule[x.name.toUpperCase()][dk]||'').toUpperCase()===source).length;
-    const sourceMin=Number(shifts.find(x=>String(x.name).toUpperCase()===source)?.minimums?.[emp.department]||0);
-    if(sourceCount-1>=sourceMin){
-     schedule[k][dk]=target;
-     if(dailyStats[dk]){dailyStats[dk][emp.department][source]=Math.max(0,(dailyStats[dk][emp.department][source]||0)-1);dailyStats[dk][emp.department][target]=(dailyStats[dk][emp.department][target]||0)+1;}
-     moved=true;break;
-    }
-    // Swap with a colleague in the target shift from the same department, preserving that department's counts.
-    const partners=employees.filter(other=>other.name.toUpperCase()!==k&&other.department===emp.department&&String(schedule[other.name.toUpperCase()][dk]||'').toUpperCase()===target&&validForDiversity(other,day,source));
-    for(const partner of partners){
-     if(!validForDiversity(emp,day,target))continue;
-     const pk=partner.name.toUpperCase();
-     schedule[k][dk]=target;schedule[pk][dk]=source;
-     if(dailyStats[dk]){dailyStats[dk][emp.department][source]=dailyStats[dk][emp.department][source]||0;dailyStats[dk][emp.department][target]=dailyStats[dk][emp.department][target]||0;}
-     moved=true;break;
-    }
-    if(moved)break;
+    const target=SH(targetRaw),log=[];let ok=true;
+    for(const d of st){if(!tryChange(emp,d,target,log)){ok=false;break;}}
+    if(ok&&workedSet().size>=2&&deptSwitches(dep)<=before+2){done=true;break;}
+    revert(log);
    }
-   if(moved)break;
+   if(done)break;
   }
-  unique=getUnique();
-  if(!moved||unique.length<2){warnings.push(emp.name+': chưa thể phân ít nhất 2 loại ca khác nhau trong cả chu kỳ mà không vi phạm điều kiện nhân sự tối thiểu, quy tắc chuyển ca hoặc giới hạn ca cá nhân.');}
+  if(!done){
+   // Đợt làm việc quá dài (vd. 25 ngày liền): chỉ còn cách tách thành hai phần, đổi ca đúng một lần.
+   const longest=strs[strs.length-1];
+   if(longest&&longest.length>=4){
+    const cur=SH(schedule[k][dateKey(longest[0])]);
+    outer:for(const frac of [0.5,0.34,0.66]){
+     const part=longest.slice(Math.max(1,Math.round(longest.length*frac)));
+     for(const targetRaw of shiftNames){
+      const target=SH(targetRaw);if(target===cur)continue;
+      const log=[];let ok=true;
+      for(const d of part){if(!tryChange(emp,d,target,log)){ok=false;break;}}
+      if(ok&&workedSet().size>=2){done=true;break outer;}
+      revert(log);
+     }
+    }
+   }
+  }
+  if(!done)warnings.push(emp.name+': chưa thể phân ít nhất 2 loại ca khác nhau trong cả chu kỳ mà không vi phạm điều kiện nhân sự tối thiểu, quy tắc chuyển ca hoặc giới hạn ca cá nhân.');
  });
+ // Ngày mà mọi nhân viên chế độ cùng một ca: đổi ca của một người (ít làm tăng số lần đổi ca nhất).
+ days.forEach(day=>{
+  const dk=dateKey(day);if(!regimeUniformOn(dk))return;
+  let best=null;
+  employees.filter(e=>e.status==='regime').forEach(e=>{
+   const cur=SH(schedule[e.name.toUpperCase()][dk]);if(!['A','A1','B'].includes(cur))return;
+   ['A','A1','B'].forEach(t=>{
+    if(t===cur)return;
+    const before=deptSwitches(e.department),log=[];
+    if(tryChange(e,day,t,log)){const delta=deptSwitches(e.department)-before,ok=!regimeUniformOn(dk);revert(log);if(ok&&(!best||delta<best.delta))best={e,t,delta};}
+   });
+  });
+  if(best)tryChange(best.e,day,best.t,[]);
+ });
+ days.forEach(day=>{if(regimeUniformOn(dateKey(day)))warnings.push(day.toLocaleDateString('vi-VN')+': toàn bộ nhân viên chế độ đang cùng một ca.');});
+ const switchesAfter=employees.reduce((t,e)=>t+switchesOf(e),0);
+ 
  // Warn when a non-Betty employee is disproportionately assigned A, even if a single A1 day technically makes two shift types.
  employees.forEach(emp=>{
   if(isBetty(emp))return;
@@ -635,18 +748,19 @@ function generateDraftSchedule(){
  specialRequests.leaves.forEach(item=>{if(!employees.some(e=>e.name.toUpperCase()===item.key))warnings.push('Không tìm thấy nhân viên cho yêu cầu nghỉ đặc biệt: '+item.key+'.');});
  Object.entries(specialRequests.preferred).forEach(([k,sh])=>{const [name,dk]=k.split('|');if(schedule[name]?.[dk]&&schedule[name][dk]!==sh)warnings.push('Không thể đáp ứng hoàn toàn yêu cầu ưu tiên ca '+sh+' của '+name+' ngày '+dk+'; thực tế xếp '+schedule[name][dk]+'.');});
  Object.entries(specialRequests.forbidden).forEach(([k,blocked])=>{const [name,dk]=k.split('|');if(schedule[name]?.[dk]&&blocked.includes(String(schedule[name][dk]).toUpperCase()))warnings.push('Yêu cầu tránh ca chưa được đáp ứng: '+name+' ngày '+dk+' (ca '+schedule[name][dk]+').');});
- return {employees,days,shifts,schedule,warnings,refDate,missingFixed};
+ return {employees,days,shifts,schedule,warnings,refDate,missingFixed,switchesBefore,switchesAfter,events:eventMap};
 }
 let lastRoster=null;let outputRows=[];
 $('autoBtn').onclick=()=>{
  if(!checkData())return;
  const result=generateDraftSchedule();
  const {employees,days,shifts,schedule,warnings,refDate,missingFixed}=result;
- lastRoster={employees,days,schedule};
+ lastRoster={employees,days,schedule,switchesBefore:result.switchesBefore,switchesAfter:result.switchesAfter,events:result.events};
  outputRows=[['Bộ phận','Nhân viên','Trạng thái',...days.map(d=>dateKey(d))],...employees.map(e=>[e.department,e.name,e.status==='regime'?'Chế độ':'Bình thường',...days.map(d=>schedule[e.name.toUpperCase()][dateKey(d)]||'')])];
  $('results').style.display='block';
- $('resultSummary').textContent='Đã tạo lịch nháp cho '+employees.length+' nhân viên trong '+days.length+' ngày. Mục tiêu đúng 6 OFF/người trong toàn chu kỳ ngày 24 đến ngày 23 tháng sau; BETTY chỉ làm ca A; TRUDY, ELI, CECI không làm ca A; các nhân viên còn lại được yêu cầu làm ít nhất 2 loại ca khác nhau trong chu kỳ nếu không xung đột mức nhân sự tối thiểu và quy tắc chuyển ca. OFF được phân bổ đều nhất có thể, ưu tiên 2 ngày liên tiếp; sau khi đủ OFF, ngày còn lại được phân ca nếu hợp lệ. Ưu tiên Senior Sup ca A và SM ca B/C; thứ tự nhân viên theo mẫu lịch; đã áp dụng hạn chế chuyển ca cả từ ngày cuối lịch trước sang ngày đầu kỳ mới (C→A/A1/B, B→A, C2→A/A1); ưu tiên giữ cùng ca qua ngày OFF/OL; cuối tuần và ngày cuối tháng áp dụng mức bổ sung riêng theo từng bộ phận/ca; nếu hai điều kiện trùng nhau, các mức bổ sung tương ứng được cộng lại. OFF cố định được suy ra từ lịch trước và luân chuyển +1 thứ mỗi tháng.'+(refDate?' Tháng tham chiếu: '+refDate.toLocaleDateString('vi-VN',{month:'long',year:'numeric'})+'.':'');
- let html='<table><thead><tr>'+outputRows[0].map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>';
+ $('resultSummary').textContent='Đã tạo lịch nháp cho '+employees.length+' nhân viên trong '+days.length+' ngày. Mục tiêu đúng 6 OFF/người trong toàn chu kỳ ngày 24 đến ngày 23 tháng sau; BETTY chỉ làm ca A; TRUDY, ELI, CECI không làm ca A; các nhân viên còn lại được yêu cầu làm ít nhất 2 loại ca khác nhau trong chu kỳ nếu không xung đột mức nhân sự tối thiểu và quy tắc chuyển ca. OFF được phân bổ đều nhất có thể, ưu tiên 2 ngày liên tiếp; sau khi đủ OFF, ngày còn lại được phân ca nếu hợp lệ. Ưu tiên Senior Sup ca A và SM ca B/C; thứ tự nhân viên theo mẫu lịch; đã áp dụng hạn chế chuyển ca cả từ ngày cuối lịch trước sang ngày đầu kỳ mới (C→A/A1/B, B→A, C2→A/A1); ưu tiên giữ cùng ca qua ngày OFF/OL; cuối tuần và ngày có sự kiện áp dụng mức bổ sung riêng theo từng bộ phận/ca; nếu hai điều kiện trùng nhau, các mức bổ sung tương ứng được cộng lại. OFF cố định được suy ra từ lịch trước và luân chuyển +1 thứ mỗi tháng.'+(refDate?' Tháng tham chiếu: '+refDate.toLocaleDateString('vi-VN',{month:'long',year:'numeric'})+'.':'');
+ const evs=result.events||new Map();
+ let html='<table><thead><tr>'+outputRows[0].map(x=>{const ev=evs.get(x);return '<th'+(ev?' class="evh"':'')+'>'+esc(x)+(ev?'<div class="evt">★ '+esc(ev)+'</div>':'')+'</th>';}).join('')+'</tr></thead><tbody>';
  outputRows.slice(1).forEach(row=>{html+='<tr>'+row.map((x,i)=>'<td'+(i>2&&x==='OL'?' style="background:#fff0d7;font-weight:700"':i>2&&x==='OFF'?' style="background:#e9f1e9;font-weight:700"':'')+'>'+esc(x)+'</td>').join('')+'</tr>';});html+='</tbody></table>';$('scheduleTable').innerHTML=html;
  if(warnings.length){notice('Đã tạo lịch nháp nhưng cần kiểm tra '+warnings.length+' cảnh báo đầu tiên:\n• '+warnings.slice(0,18).join('\n• ')+(warnings.length>18?'\n• ... còn '+(warnings.length-18)+' cảnh báo nữa.':''),'warn');}
  else notice('Đã tạo lịch nháp. Hãy kiểm tra lịch trước khi sử dụng chính thức.','success');
@@ -659,7 +773,7 @@ function buildRosterSheet(){
  const nD=days.length,dataCol=2,offCol=dataCol+nD;
  const aoa=[];
  aoa.push(['ROSTER '+EN_MONTHS[days[nD-1].getMonth()]]);
- aoa.push([]);
+ aoa.push(['EVENT','',...days.map(d=>(lastRoster.events&&lastRoster.events.get(dateKey(d)))||''),'']);
  aoa.push(['POSITION','',...days.map(()=>''),'OFF']);
  aoa.push(['','',...days.map(d=>EN_DAYS[d.getDay()]),'']);
  const merges=[{s:{r:0,c:0},e:{r:0,c:Math.max(dataCol+nD-1,1)}},{s:{r:2,c:0},e:{r:3,c:0}}];
@@ -691,6 +805,7 @@ $('exportBtn').onclick=()=>{
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,buildRosterSheet(),'Roster');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(outputRows),'Danh sách');
+  if(lastRoster.events&&lastRoster.events.size){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Ngày','Sự kiện'],...[...lastRoster.events.entries()].sort((a,b)=>a[0]<b[0]?-1:1)]),'Sự kiện');}
   XLSX.writeFile(wb,'Staff-Schedule-'+$('startDate').value+'-to-'+$('endDate').value+'.xlsx');
  }catch(err){console.error(err);notice('Không xuất được file Excel: '+err.message,'warn');}
 };
@@ -709,7 +824,7 @@ window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
 function fmtDate(v){const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'/'+m[2]+'/'+m[1]:'chưa chọn';}
 function renderOverview(){
  $('ovCycle').textContent='Chu kỳ '+fmtDate($('startDate').value)+' → '+fmtDate($('endDate').value);
- const nEmp=fileData.normalFile?.employees?.length||0,nReg=fileData.specialEmployeeFile?.employees?.length||0;
+ const nEmp=fileData.normalFile?.employees?.length||0;const _ns=new Set((fileData.normalFile?.employees||[]).map(e=>e.name.trim().toUpperCase()));const nReg=(fileData.specialEmployeeFile?.employees||[]).filter(e=>_ns.has(e.name.trim().toUpperCase())).length;
  const nLeave=fileData.leaveFile?.requests?.length;
  const items=[
   ['Nhân viên bình thường',nEmp>0,nEmp+' nhân viên','Chưa nạp','#du-lieu',false],
@@ -718,7 +833,8 @@ function renderOverview(){
   ['Mẫu Excel lịch làm việc',!!fileData.templateFile,'Đã nạp','Chưa nạp','#du-lieu',false],
   ['Chu kỳ xếp lịch',!!($('startDate').value&&$('endDate').value),fmtDate($('startDate').value)+' → '+fmtDate($('endDate').value),'Chưa chọn','#du-lieu',false],
   ['Lịch kỳ trước',!!fileData.previousFile,'Đã nạp','Chưa nạp','#du-lieu',false],
-  ['Đăng ký nghỉ',nLeave>0,nLeave+' lượt','Không bắt buộc','#du-lieu',true]
+  ['Đăng ký nghỉ',nLeave>0,nLeave+' lượt','Không bắt buộc','#du-lieu',true],
+  ['Ngày có sự kiện',getEvents().size>0,getEvents().size+' ngày','Không bắt buộc','#du-lieu',true]
  ];
  $('ovChecklist').innerHTML=items.map(([label,ok,okText,noText,href,opt])=>'<li class="'+(ok?'ok':opt?'':'todo')+'"><span class="dot">'+(ok?'✓':opt?'–':'!')+'</span><span><b>'+esc(label)+'</b></span><span class="st">'+esc(ok?okText:noText)+(ok?'':' · <a href="'+href+'">Nhập</a>')+'</span></li>').join('');
  let html='<p class="hint" style="margin:0">Chưa có danh sách nhân viên.</p>';
@@ -745,12 +861,12 @@ function buildExtras(){
  const depts=[...new Set(employees.map(e=>e.department||''))];
  $('fDept').innerHTML='<option value="">Tất cả bộ phận</option>'+depts.map(d=>'<option value="'+esc(d)+'">'+esc(d)+'</option>').join('');
  $('fName').value='';
- let h='<table><thead><tr><th>Bộ phận</th><th>Nhân viên</th><th>OFF</th><th>OL</th>'+shiftNames.map(n=>'<th>'+esc(n)+'</th>').join('')+'<th>Số loại ca</th></tr></thead><tbody>';
+ let h='<table><thead><tr><th>Bộ phận</th><th>Nhân viên</th><th>OFF</th><th>OL</th>'+shiftNames.map(n=>'<th>'+esc(n)+'</th>').join('')+'<th>Số loại ca</th><th>Lần đổi ca</th></tr></thead><tbody>';
  employees.forEach(e=>{
   const row=days.map(d=>schedule[e.name.toUpperCase()][dateKey(d)]||'');
   const cnt=c=>row.filter(x=>x===c).length;
   const kinds=shiftNames.filter(n=>cnt(n)>0).length;
-  h+='<tr><td>'+esc(e.department||'')+'</td><td>'+esc(e.name)+'</td><td class="n'+(cnt('OFF')!==6?' bad':'')+'">'+cnt('OFF')+'</td><td class="n">'+cnt('OL')+'</td>'+shiftNames.map(n=>'<td class="n">'+cnt(n)+'</td>').join('')+'<td class="n">'+kinds+'</td></tr>';
+  h+='<tr><td>'+esc(e.department||'')+'</td><td>'+esc(e.name)+'</td><td class="n'+(cnt('OFF')!==6?' bad':'')+'">'+cnt('OFF')+'</td><td class="n">'+cnt('OL')+'</td>'+shiftNames.map(n=>'<td class="n">'+cnt(n)+'</td>').join('')+'<td class="n">'+kinds+'</td><td class="n">'+row.reduce((n,v,i)=>n+(i>0&&shiftNames.includes(v)&&shiftNames.includes(row[i-1])&&v!==row[i-1]?1:0),0)+'</td></tr>';
  });
  $('statsTable').innerHTML=h+'</tbody></table>';
  $('resultHead').textContent=employees.length+' nhân viên · '+days.length+' ngày · '+fmtDate($('startDate').value)+' → '+fmtDate($('endDate').value);
@@ -762,6 +878,79 @@ $('autoBtn').onclick=()=>{
  const before=lastRoster;_autoRun();
  if(lastRoster&&lastRoster!==before){buildExtras();location.hash='ket-qua';}
 };
+/* ===== ngày có sự kiện ===== */
+function addEventRow(date,name){
+ const r=document.createElement('div');r.className='eventrow';
+ r.innerHTML='<input type="date" class="ev-date" aria-label="Ngày sự kiện"><input type="text" class="ev-name" placeholder="Tên sự kiện" aria-label="Tên sự kiện"><button class="remove" type="button" title="Xóa">×</button>';
+ r.querySelector('.ev-date').value=date||'';r.querySelector('.ev-name').value=name||'';
+ r.querySelector('.remove').onclick=()=>{r.remove();if(typeof ovSoon==='function')ovSoon();};
+ $('events').appendChild(r);syncEventBounds();
+}
+function syncEventBounds(){document.querySelectorAll('.ev-date').forEach(i=>{i.min=$('startDate').value||'';i.max=$('endDate').value||'';});}
+function getEvents(){
+ const m=new Map();
+ document.querySelectorAll('.eventrow').forEach(r=>{
+  const d=r.querySelector('.ev-date').value,n=r.querySelector('.ev-name').value.trim()||'Sự kiện';
+  if(d)m.set(d,m.has(d)?m.get(d)+' / '+n:n);
+ });
+ return m;
+}
+$('addEvent').onclick=()=>addEventRow($('startDate').value||'','');
+$('startDate').addEventListener('change',syncEventBounds);$('endDate').addEventListener('change',syncEventBounds);
+
+/* ===== lưu dữ liệu nhập tay (localStorage) ===== */
+const LSKEY='xeplich.v1.';
+const store={
+ get(k){try{const v=localStorage.getItem(LSKEY+k);return v?JSON.parse(v):null;}catch(e){return null;}},
+ set(k,v){try{localStorage.setItem(LSKEY+k,JSON.stringify(v));return true;}catch(e){return false;}},
+ del(k){try{localStorage.removeItem(LSKEY+k);}catch(e){}}
+};
+const inputsMap=sel=>{const o={};document.querySelectorAll(sel).forEach(i=>{o[(i.dataset.shift||i.dataset.extraShift)+'|'+(i.dataset.dept||i.dataset.extraDept)]=i.value;});return o;};
+const fillMap=(sel,o)=>document.querySelectorAll(sel).forEach(i=>{const k=(i.dataset.shift||i.dataset.extraShift)+'|'+(i.dataset.dept||i.dataset.extraDept);if(k in o)i.value=o[k];});
+const SECTIONS=[
+ {key:'shifts',anchor:'shifts',
+  get:()=>[...document.querySelectorAll('.shiftrow')].map(r=>({n:r.querySelector('.shift-name').value,s:r.querySelector('.shift-start').value,e:r.querySelector('.shift-end').value})),
+  set:d=>{$('shifts').innerHTML='';d.forEach(x=>{addShift(x.n);const r=$('shifts').lastElementChild;r.querySelector('.shift-start').value=x.s||'';r.querySelector('.shift-end').value=x.e||'';});buildMinimums();}},
+ {key:'minimums',anchor:'minimums',get:()=>inputsMap('#minimums input[data-shift]'),set:d=>fillMap('#minimums input[data-shift]',d)},
+ {key:'weekend',anchor:'weekendExtraBody',get:()=>inputsMap('input[data-extra-type="weekend"]'),set:d=>fillMap('input[data-extra-type="weekend"]',d)},
+ {key:'eventExtra',anchor:'eventExtraBody',get:()=>inputsMap('input[data-extra-type="event"]'),set:d=>fillMap('input[data-extra-type="event"]',d)},
+ {key:'rules',anchor:'rules',get:()=>$('rules').value,set:d=>{$('rules').value=d;}},
+ {key:'cycle',anchor:'startDate',get:()=>({s:$('startDate').value,e:$('endDate').value}),set:d=>{if(d.s)$('startDate').value=d.s;if(d.e)$('endDate').value=d.e;syncEventBounds();}},
+ {key:'events',anchor:'events',
+  get:()=>[...document.querySelectorAll('.eventrow')].map(r=>({d:r.querySelector('.ev-date').value,n:r.querySelector('.ev-name').value})),
+  set:d=>{$('events').innerHTML='';d.forEach(x=>addEventRow(x.d,x.n));}},
+ {key:'requests',anchor:'requests',get:()=>$('requests').value,set:d=>{$('requests').value=d;}},
+ {key:'priority',anchor:'priority',get:()=>$('priority').value,set:d=>{if([...$('priority').options].some(o=>o.value===d))$('priority').value=d;}},
+ {key:'notes',anchor:'notes',get:()=>$('notes').value,set:d=>{$('notes').value=d;}}
+];
+const fmtSaved=t=>{const d=new Date(t);const p=n=>String(n).padStart(2,'0');return p(d.getHours())+':'+p(d.getMinutes())+' '+p(d.getDate())+'/'+p(d.getMonth()+1);};
+SECTIONS.forEach(sec=>{
+ const saved=store.get(sec.key);
+ if(saved&&saved.data!==undefined){try{sec.set(saved.data);}catch(e){console.error('Không khôi phục được mục '+sec.key,e);}}
+ const field=$(sec.anchor).closest('.field');if(!field)return;
+ const bar=document.createElement('div');bar.className='savebar';
+ bar.innerHTML='<button type="button" class="smallbtn savebtn">Lưu</button><span class="savestat" role="status"></span>';
+ field.appendChild(bar);
+ const btn=bar.querySelector('button'),stat=bar.querySelector('.savestat');
+ const setStat=(text,cls)=>{stat.textContent=text;stat.className='savestat '+(cls||'');};
+ setStat(saved?'Đã lưu lúc '+fmtSaved(saved.t):'Chưa lưu',saved?'ok':'');
+ let hasSaved=!!saved;
+ const dirty=ev=>{if(bar.contains(ev.target))return;setStat(hasSaved?'Có thay đổi chưa lưu':'Chưa lưu','dirty');};
+ field.addEventListener('input',dirty);field.addEventListener('change',dirty);field.addEventListener('click',dirty);
+ btn.addEventListener('click',()=>{
+  const t=Date.now();
+  if(store.set(sec.key,{t,data:sec.get()})){hasSaved=true;setStat('Đã lưu lúc '+fmtSaved(t),'ok');}
+  else setStat('Trình duyệt không cho phép lưu dữ liệu.','bad');
+ });
+});
+(function(){
+ const b=$('clearSaved');let armed=null;
+ b.addEventListener('click',()=>{
+  if(!armed){b.textContent='Bấm lần nữa để xoá và tải lại trang';armed=setTimeout(()=>{armed=null;b.textContent='Xoá dữ liệu đã lưu';},4000);return;}
+  clearTimeout(armed);SECTIONS.forEach(sec=>store.del(sec.key));location.reload();
+ });
+})();
+
 show(location.hash.slice(1));
 </script>
 <script>
@@ -806,5 +995,7 @@ show(location.hash.slice(1));
  });
  lock(!authed());if(!authed())document.getElementById("lgId").focus();
 })();
+
+
 </script>
 </body></html>
