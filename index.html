@@ -1111,7 +1111,11 @@ const SECTIONS=[
  {key:'minimums',anchor:'minimums',get:()=>inputsMap('#minimums input[data-shift]'),set:d=>fillMap('#minimums input[data-shift]',d)},
  {key:'weekend',anchor:'weekendExtraBody',get:()=>inputsMap('input[data-extra-type="weekend"]'),set:d=>fillMap('input[data-extra-type="weekend"]',d)},
  {key:'eventExtra',anchor:'eventExtraBody',get:()=>inputsMap('input[data-extra-type="event"]'),set:d=>fillMap('input[data-extra-type="event"]',d)},
- {key:'rules',anchor:'rules',get:()=>$('rules').value,set:d=>{$('rules').value=d;}},
+ {key:'rules',anchor:'rules',get:()=>$('rules').value,set:d=>{
+  // Giữ nội dung đã lưu, tự thêm các quy định mặc định mới (theo số thứ tự) chưa có trong bản đã lưu.
+  const saved=String(d||''),nums=new Set((saved.match(/^\s*(\d+)\./gm)||[]).map(x=>parseInt(x)));
+  const add=$('rules').defaultValue.split(/\r?\n/).filter(l=>{const m=/^\s*(\d+)\./.exec(l);return m&&!nums.has(Number(m[1]));});
+  $('rules').value=add.length?saved.replace(/\s*$/,'')+'\n'+add.join('\n'):saved;}},
  {key:'cycle',anchor:'startDate',get:()=>({s:$('startDate').value,e:$('endDate').value}),set:d=>{if(d.s)$('startDate').value=d.s;if(d.e)$('endDate').value=d.e;syncEventBounds();}},
  {key:'events',anchor:'events',
   get:()=>[...document.querySelectorAll('.eventrow')].map(r=>({d:r.querySelector('.ev-date').value,n:r.querySelector('.ev-name').value})),
