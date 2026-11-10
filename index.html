@@ -85,7 +85,9 @@ header{position:sticky;top:0;z-index:20;flex-wrap:wrap}
 9. Ưu tiên xếp cùng một ca ở các ngày làm việc nằm giữa hai ngày OFF.
 10. Nếu hôm trước làm ca C thì hôm sau không được làm ca A, A1 hoặc B.
 11. Nếu hôm trước làm ca B thì hôm sau không được làm ca A.
-12. Nếu hôm trước làm ca C2 thì hôm sau không được làm ca A hoặc A1.</textarea></div>
+12. Nếu hôm trước làm ca C2 thì hôm sau không được làm ca A hoặc A1.
+13. Không được làm quá 7 ngày liên tiếp.
+14. Chỉ được OFF tối đa 2 ngày liên tiếp.</textarea></div>
 <div class="field"><label>Mẫu Excel lịch làm việc</label><div class="filebox"><input id="templateFile" type="file" accept=".xlsx,.xls,.csv"><div class="file-status" id="templateStatus">Chưa chọn file</div></div></div>
 </section>
 <section class="panel weekly">
@@ -430,13 +432,20 @@ function generateDraftSchedule(){
     const weekOff=days.slice(weekStart,weekEnd).filter(x=>schedule[key][dateKey(x)]==='OFF').length;
     const adjacent=offDates.some(o=>Math.abs((d-o)/86400000)===1)?1:0;
     const slack=deptSlack(emp.department,d);
-    return {d,adjacent,slack,weekOff,weekIndex};
-   }).sort((a,b)=>b.adjacent-a.adjacent||a.weekOff-b.weekOff||b.slack-a.slack||a.d-b.d);
+    // Quy định 13/14: không làm quá 7 ngày liên tiếp; OFF tối đa 2 ngày liên tiếp.
+    const stAfter=days.map(x=>{const v=dateKey(x)===dateKey(d)?'OFF':schedule[key][dateKey(x)];return v;});
+    let run=0,excess=0,offRun=0,offBad=0;
+    stAfter.forEach(v=>{if(v==='OFF'||v==='OL')run=0;else{run++;if(run>7)excess++;}if(v==='OFF'){offRun++;if(offRun>2)offBad=1;}else offRun=0;});
+    return {d,adjacent,slack,weekOff,weekIndex,excess,offBad};
+   }).sort((a,b)=>a.offBad-b.offBad||a.excess-b.excess||b.adjacent-a.adjacent||a.weekOff-b.weekOff||b.slack-a.slack||a.d-b.d);
    if(!candidates.length)break;
    const chosen=candidates[0];
    schedule[key][dateKey(chosen.d)]='OFF';
    offDates.push(chosen.d);
   }
+  {let run=0,offRun=0,w7=false,o2=false;days.forEach(x=>{const v=schedule[key][dateKey(x)];if(v==='OFF'||v==='OL')run=0;else{run++;if(run>7)w7=true;}if(v==='OFF'){offRun++;if(offRun>2)o2=true;}else offRun=0;});
+  if(w7)warnings.push(emp.name+': có đoạn làm quá 7 ngày liên tiếp (quy định 13); cần kiểm tra OFF cố định/OL.');
+  if(o2)warnings.push(emp.name+': có hơn 2 ngày OFF liên tiếp (quy định 14).');}
   if(offDates.length<offTarget)warnings.push(emp.name+': tổng số OFF là '+offDates.length+', chưa đủ 6 ngày trong kỳ.');
   if(offDates.length>offTarget)warnings.push(emp.name+': tổng số OFF là '+offDates.length+', vượt mục tiêu 6 ngày trong kỳ.');
   if(offTarget>=2&&!offDates.some((o,i)=>offDates.some((p,j)=>i!==j&&Math.abs((o-p)/86400000)===1)))warnings.push(emp.name+': chưa có 2 ngày OFF liên tiếp trong kỳ; cần kiểm tra lại ưu tiên nhân sự và mức tối thiểu.');
