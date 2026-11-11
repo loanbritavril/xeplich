@@ -61,7 +61,7 @@ header{position:sticky;top:0;z-index:20;flex-wrap:wrap}
 </section>
 <section class="view" id="view-du-lieu" hidden>
 <div class="hero"><div><h2>Dữ liệu</h2><p>Bên trái là dữ liệu thiết lập một lần. Bên phải là dữ liệu của từng kỳ xếp lịch.</p></div><span class="tag">Dành cho quản lý</span></div>
-<div class="savenote" id="saveNote"><span>Dữ liệu nhập tay được lưu trong trình duyệt này sau khi bấm Lưu ở từng mục. File Excel cần nạp lại mỗi lần vào.</span><button type="button" class="smallbtn" id="clearSaved">Xoá dữ liệu đã lưu</button></div>
+<div class="savenote" id="saveNote"><span>Dữ liệu nhập tay được lưu trong trình duyệt này sau khi bấm Lưu ở từng mục. File Excel cũng có nút Lưu riêng để lần sau không phải chọn lại.</span><button type="button" class="smallbtn" id="clearSaved">Xoá dữ liệu đã lưu</button></div>
 <div class="layout">
 <section class="panel">
 <div class="panelhead"><div class="num">01</div><div><h3>Dữ liệu cố định</h3><p class="sub">Thiết lập một lần, cập nhật khi quy định thay đổi</p></div></div>
@@ -351,8 +351,7 @@ function parseBookRows(rows){
  });
  return out;
 }
-fileIds.forEach(id=>$(id).addEventListener('change',async e=>{
- const f=e.target.files[0];if(!f)return;
+async function ingestFile(id,f){
  const st=$(labels[id]);st.textContent='Đang đọc '+f.name+'...';st.className='file-status';
  try{
    let rows=[];
@@ -374,7 +373,8 @@ fileIds.forEach(id=>$(id).addEventListener('change',async e=>{
      st.textContent='✓ '+f.name+' · '+rows.length+' dòng đã đọc';st.className='file-status ok';
    }
  }catch(err){st.textContent='Không đọc được file. Hãy kiểm tra định dạng Excel.';st.className='file-status bad';console.error(err);}
-}));
+}
+fileIds.forEach(id=>$(id).addEventListener('change',e=>{const f=e.target.files[0];if(f)ingestFile(id,f);}));
 function getShifts(){return [...document.querySelectorAll('.shiftrow')].map(r=>{const name=r.querySelector('.shift-name').value.trim();const minimums={};document.querySelectorAll('#minimums input[data-shift=\"'+CSS.escape(name)+'\"]').forEach(i=>minimums[i.dataset.dept]=Number(i.value||0));return {name,start:r.querySelector('.shift-start').value.trim(),end:r.querySelector('.shift-end').value.trim(),minimums};}).filter(s=>s.name);}
 function checkData(){
  const issues=[];
@@ -1365,11 +1365,42 @@ SECTIONS.forEach(sec=>{
   else setStat('Trình duyệt không cho phép lưu dữ liệu.','bad');
  });
 });
+/* ===== Lưu file Excel đã chọn (IndexedDB của trình duyệt) ===== */
+const fileStore=(()=>{
+ let dbp=null;const open=()=>dbp||(dbp=new Promise((res,rej)=>{try{const r=indexedDB.open('xeplich-files',1);r.onupgradeneeded=()=>r.result.createObjectStore('files');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}}));
+ const tx=(mode,fn)=>open().then(db=>new Promise((res,rej)=>{const t=db.transaction('files',mode),st=t.objectStore('files');const out=fn(st);t.oncomplete=()=>res(out&&out.result);t.onerror=()=>rej(t.error);}));
+ return {get:k=>tx('readonly',st=>st.get(k)),set:(k,v)=>tx('readwrite',st=>{st.put(v,k);}),del:k=>tx('readwrite',st=>{st.delete(k);}),clear:()=>tx('readwrite',st=>{st.clear();}).catch(()=>{})};
+})();
+fileIds.forEach(id=>{
+ const box=$(id).closest('.filebox');if(!box)return;
+ const bar=document.createElement('div');bar.className='savebar';
+ bar.innerHTML='<button type="button" class="smallbtn savebtn">Lưu file</button><button type="button" class="smallbtn" hidden>Bỏ lưu</button><span class="savestat" role="status"></span>';
+ box.insertAdjacentElement('afterend',bar);
+ const [btn,unbtn]=bar.querySelectorAll('button'),stat=bar.querySelector('.savestat');
+ const setStat=(t,c)=>{stat.textContent=t;stat.className='savestat '+(c||'');};
+ let saved=null;
+ const showSaved=()=>{unbtn.hidden=!saved;setStat(saved?'Đã lưu: '+saved.name+' ('+fmtSaved(saved.t)+')':'Chưa lưu',saved?'ok':'');};
+ $(id).addEventListener('change',()=>setStat(saved?'Đã chọn file mới, bấm Lưu file để thay bản đã lưu':'Chưa lưu','dirty'));
+ btn.addEventListener('click',async()=>{
+  const f=fileData[id]?.file;if(!f){setStat('Chưa chọn file để lưu.','bad');return;}
+  try{const v={name:f.name,t:Date.now(),buf:await f.arrayBuffer()};await fileStore.set(id,v);saved=v;showSaved();}
+  catch(e){console.error(e);setStat('Trình duyệt không cho phép lưu file.','bad');}
+ });
+ unbtn.addEventListener('click',async()=>{try{await fileStore.del(id);}catch(e){}saved=null;showSaved();});
+ fileStore.get(id).then(async v=>{
+  saved=v||null;showSaved();
+  if(v&&v.buf&&!fileData[id]){
+   const f=new File([v.buf],v.name);
+   await ingestFile(id,f);
+   const st=$(labels[id]);if(st.classList.contains('ok'))st.textContent+=' · đã lưu';
+  }
+ }).catch(()=>{setStat('Trình duyệt không hỗ trợ lưu file.','');});
+});
 (function(){
  const b=$('clearSaved');let armed=null;
  b.addEventListener('click',()=>{
   if(!armed){b.textContent='Bấm lần nữa để xoá và tải lại trang';armed=setTimeout(()=>{armed=null;b.textContent='Xoá dữ liệu đã lưu';},4000);return;}
-  clearTimeout(armed);SECTIONS.forEach(sec=>store.del(sec.key));location.reload();
+  clearTimeout(armed);SECTIONS.forEach(sec=>store.del(sec.key));fileStore.clear().finally(()=>location.reload());
  });
 })();
 
