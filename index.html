@@ -93,7 +93,8 @@ header{position:sticky;top:0;z-index:20;flex-wrap:wrap}
 13. Không được làm quá 7 ngày liên tiếp.
 14. Chỉ được OFF tối đa 2 ngày liên tiếp.
 15. Senior Sup có thể thay thế Supervisor nếu thiếu người.
-16. Ca A/B/C là 3 ca chính; thừa người thì mới xếp vào A1/C2.</textarea></div>
+16. Ca A/B/C là 3 ca chính; thừa người thì mới xếp vào A1/C2.
+17. Riêng FSP: ca A1 tối đa 1 người mỗi ngày; thừa người thì xếp vào 3 ca chính A/B/C.</textarea></div>
 <div class="field"><label>Mẫu Excel lịch làm việc</label><div class="filebox"><input id="templateFile" type="file" accept=".xlsx,.xls,.csv"><div class="file-status" id="templateStatus">Chưa chọn file</div></div></div>
 </section>
 <section class="panel weekly">
@@ -330,6 +331,8 @@ function parseEmployeeRows(rows){
 }
 // Quy định 6: mã ngày nghỉ theo loại người book chọn.
 const LEAVE_CODES=['OL','AL','PH','SL','OS','ML','WL'];const LEAVE=new Set(LEAVE_CODES);
+const isFSP=e=>String(e?.department||'').toUpperCase().replace(/[^A-Z]/g,'')==='FSP';
+const FSP_A1_MAX=1; // Quy định 17: FSP ca A1 tối đa 1 người/ngày
 const isLeave=v=>LEAVE.has(String(v||'').toUpperCase());
 const leaveCodeIn=v=>{const m=String(v??'').toUpperCase().match(new RegExp('(?:^|[^A-Z])('+LEAVE_CODES.join('|')+')(?![A-Z])'));return m?m[1]:'';};
 function parseBookRows(rows){
@@ -706,6 +709,7 @@ function generateDraftSchedule(){
   const isMain=x=>['A','B','C'].includes(String(x).toUpperCase());
   demands.sort((a,b)=>((b.sh==='A'?1:0)-(a.sh==='A'?1:0))||Number(a.extra)-Number(b.extra)||(Number(isMain(b.sh))-Number(isMain(a.sh)))||a.dep.localeCompare(b.dep));
   demands.forEach(({dep,sh,extra})=>{
+   if(String(dep).toUpperCase()==='FSP'&&String(sh).toUpperCase()==='A1'&&(counts[dep]?.[sh]||0)>=FSP_A1_MAX)return;
    if(!extra && (counts[dep]?.[sh]||0)>=(shifts.find(x=>x.name===sh)?.minimums?.[dep]||0))return;
    let e=null;
    if(extra){
@@ -728,11 +732,13 @@ function generateDraftSchedule(){
   });
   // Quy định 16: khi ca chính A/B/C của bộ phận đã đủ mức cần (kể cả phần thêm cuối tuần/sự kiện), người còn thừa ưu tiên A1/C2.
   const needMain=(dep,sh)=>{const x=shifts.find(z=>z.name===sh);let n=Number(x?.minimums?.[dep]||0);if(isWeekend)n+=getExtraCount('weekend',sh,dep);if(isMonthEnd)n+=getExtraCount('event',sh,dep);return n;};
-  const mainFullPenalty=(e,sh)=>isMain(sh)&&(counts[e.department]?.[sh]||0)>=needMain(e.department,sh)?25:0;
+  const mainFullPenalty=(e,sh)=>{
+   if(isFSP(e))return isMain(sh)?0:((counts[e.department]?.[sh]||0)>=needMain(e.department,sh)?25:0); // FSP: thừa người thì vào 3 ca chính
+   return isMain(sh)&&(counts[e.department]?.[sh]||0)>=needMain(e.department,sh)?25:0;};
   // Place remaining staff in the least-filled eligible shift; regime employees are spread across A/A1/B.
   const rest=available.filter(e=>!used.has(e.name.toUpperCase())).sort((a,b)=>(a.status==='regime'?-1:0)-(b.status==='regime'?-1:0));
   rest.forEach(e=>{
-   let opts=shiftNames.filter(sh=>eligible(e,sh,day));if(!opts.length){warnings.push(e.name+': không có ca hợp lệ.');return;}
+   let opts=shiftNames.filter(sh=>eligible(e,sh,day)&&!(isFSP(e)&&String(sh).toUpperCase()==='A1'&&(counts[e.department]?.[sh]||0)>=FSP_A1_MAX));if(!opts.length){warnings.push(e.name+': không có ca hợp lệ.');return;}
    opts.sort((a,b)=>{
     const regimeA=Object.entries(assigned).filter(([name,sh])=>sh===a&&employees.find(x=>x.name.toUpperCase()===name)?.status==='regime').length;
     const regimeB=Object.entries(assigned).filter(([name,sh])=>sh===b&&employees.find(x=>x.name.toUpperCase()===name)?.status==='regime').length;
@@ -774,6 +780,7 @@ function generateDraftSchedule(){
   const prev=priorCodeFor(emp,day);
   if(shiftNames.includes(prev)&&!transitionAllowed(prev,target))return false;
   if(idx<days.length-1){const next=String(schedule[k][dateKey(days[idx+1])]||'').toUpperCase();if(shiftNames.includes(next)&&!transitionAllowed(target,next))return false;}
+  if(isFSP(emp)&&target==='A1'&&employees.filter(x=>x!==emp&&isFSP(x)&&SH(schedule[x.name.toUpperCase()][dk])==='A1').length>=FSP_A1_MAX)return false;
   if(target==='A'&&!['Senior Sup','SM'].includes(emp.department)){
    const hasLeader=employees.some(x=>['Senior Sup','SM'].includes(x.department)&&x.name.toUpperCase()!==k&&schedule[x.name.toUpperCase()][dk]==='A');
    if(!hasLeader)return false;
