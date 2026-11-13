@@ -95,7 +95,7 @@ header{position:sticky;top:0;z-index:20;flex-wrap:wrap}
 15. Senior Sup có thể thay thế Supervisor nếu thiếu người.
 16. Ca A/B/C là 3 ca chính; thừa người thì mới xếp vào A1/C2.
 17. Riêng FSP: ca A1 tối đa 1 người mỗi ngày; thừa người thì xếp vào 3 ca chính A/B/C.
-18. Supervisor và Senior Sup: ca A1 và ca C2 mỗi ca tối đa 1 người/ngày (tính chung 2 bộ phận), ưu tiên Supervisor.</textarea></div>
+18. Supervisor và Senior Sup: ca A1 và ca C2 mỗi ca tối đa 1 người/ngày (tính chung 2 bộ phận), ưu tiên Supervisor. Với ca phụ, ưu tiên C2 hơn A1; A1 chỉ xếp vào cuối tuần hoặc khi bắt buộc.</textarea></div>
 <div class="field"><label>Mẫu Excel lịch làm việc</label><div class="filebox"><input id="templateFile" type="file" accept=".xlsx,.xls,.csv"><div class="file-status" id="templateStatus">Chưa chọn file</div></div></div>
 </section>
 <section class="panel weekly">
@@ -741,7 +741,10 @@ function generateDraftSchedule(){
   // Quy định 16: khi ca chính A/B/C của bộ phận đã đủ mức cần (kể cả phần thêm cuối tuần/sự kiện), người còn thừa ưu tiên A1/C2.
   const needMain=(dep,sh)=>{const x=shifts.find(z=>z.name===sh);let n=Number(x?.minimums?.[dep]||0);if(isWeekend)n+=getExtraCount('weekend',sh,dep);if(isMonthEnd)n+=getExtraCount('event',sh,dep);return n;};
   const mainFullPenalty=(e,sh)=>{
-   if(isSupGroupDep(e.department)&&isAuxShift(sh))return isSeniorSupDep(e.department)?40:0; // ưu tiên Supervisor cho suất A1/C2
+   if(isSupGroupDep(e.department)&&isAuxShift(sh)){
+    // Quy định 18: ưu tiên C2 hơn A1; A1 chỉ dùng cuối tuần hoặc khi bắt buộc.
+    const a1=String(sh).toUpperCase()==='A1'?(isWeekend?3:80):0;
+    return (isSeniorSupDep(e.department)?40:0)+a1;}
    if(isFSP(e))return isMain(sh)?0:((counts[e.department]?.[sh]||0)>=needMain(e.department,sh)?25:0); // FSP: thừa người thì vào 3 ca chính
    return isMain(sh)&&(counts[e.department]?.[sh]||0)>=needMain(e.department,sh)?25:0;};
   // Place remaining staff in the least-filled eligible shift; regime employees are spread across A/A1/B.
@@ -789,6 +792,7 @@ function generateDraftSchedule(){
   const prev=priorCodeFor(emp,day);
   if(shiftNames.includes(prev)&&!transitionAllowed(prev,target))return false;
   if(idx<days.length-1){const next=String(schedule[k][dateKey(days[idx+1])]||'').toUpperCase();if(shiftNames.includes(next)&&!transitionAllowed(target,next))return false;}
+  if(isSupGroupDep(emp.department)&&target==='A1'&&![0,6].includes(day.getDay()))return false;
   if(isSupGroupDep(emp.department)&&isAuxShift(target)&&employees.filter(x=>x!==emp&&isSupGroupDep(x.department)&&SH(schedule[x.name.toUpperCase()][dk])===target).length>=SUP_AUX_MAX)return false;
   if(isFSP(emp)&&target==='A1'&&employees.filter(x=>x!==emp&&isFSP(x)&&SH(schedule[x.name.toUpperCase()][dk])==='A1').length>=FSP_A1_MAX)return false;
   if(target==='A'&&!['Senior Sup','SM'].includes(emp.department)){
@@ -1342,7 +1346,7 @@ const SECTIONS=[
  {key:'eventExtra',anchor:'eventExtraBody',get:()=>inputsMap('input[data-extra-type="event"]'),set:d=>fillMap('input[data-extra-type="event"]',d)},
  {key:'rules',anchor:'rules',get:()=>$('rules').value,set:d=>{
   // Giữ nội dung đã lưu, tự thêm các quy định mặc định mới (theo số thứ tự) chưa có trong bản đã lưu.
-  const OLD={'6. Ngày xin nghỉ được ghi là OL.':'6. Ngày nghỉ ghi là OL/AL/PH/SL/OS/ML/WL (tuỳ theo loại ngày nghỉ mà người book chọn).','9. Ưu tiên xếp cùng một ca ở các ngày làm việc nằm giữa hai ngày OFF.':'9. Ưu tiên xếp cùng một ca ở các ngày làm việc nằm giữa hai ngày OFF (trừ ca A1 và C2 thì không cần làm cùng 1 ca giữa các ngày OFF vì chỉ là ca phụ không phải ca chính).'};
+  const OLD={'18. Supervisor và Senior Sup: ca A1 và ca C2 mỗi ca tối đa 1 người/ngày (tính chung 2 bộ phận), ưu tiên Supervisor.':'18. Supervisor và Senior Sup: ca A1 và ca C2 mỗi ca tối đa 1 người/ngày (tính chung 2 bộ phận), ưu tiên Supervisor. Với ca phụ, ưu tiên C2 hơn A1; A1 chỉ xếp vào cuối tuần hoặc khi bắt buộc.','6. Ngày xin nghỉ được ghi là OL.':'6. Ngày nghỉ ghi là OL/AL/PH/SL/OS/ML/WL (tuỳ theo loại ngày nghỉ mà người book chọn).','9. Ưu tiên xếp cùng một ca ở các ngày làm việc nằm giữa hai ngày OFF.':'9. Ưu tiên xếp cùng một ca ở các ngày làm việc nằm giữa hai ngày OFF (trừ ca A1 và C2 thì không cần làm cùng 1 ca giữa các ngày OFF vì chỉ là ca phụ không phải ca chính).'};
   d=String(d||'').split(/\r?\n/).map(l=>OLD[l.trim()]||l).join('\n');
   const saved=String(d||''),nums=new Set((saved.match(/^\s*(\d+)\./gm)||[]).map(x=>parseInt(x)));
   const add=$('rules').defaultValue.split(/\r?\n/).filter(l=>{const m=/^\s*(\d+)\./.exec(l);return m&&!nums.has(Number(m[1]));});
